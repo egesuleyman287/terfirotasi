@@ -194,13 +194,11 @@ export default function App() {
     });
   }
   async function finishQuiz() {
-    const answered = answers.filter(answer => typeof answer === 'number').length;
-    if (answered < activeQuestions.length) {
-      Alert.alert('Eksik cevaplar var', `Analizi görmek için tüm soruları cevaplamalısın. ${activeQuestions.length - answered} soru boş.`);
-      return;
-    }
-    await recordAttempt(answers);
+    // Blank questions count as incorrect; a technical storage issue must never block the result screen.
+    const finalAnswers = activeQuestions.map((_, questionIndex) => typeof answers[questionIndex] === 'number' ? answers[questionIndex] : -1);
+    setAnswers(finalAnswers);
     setScreen('result');
+    try { await recordAttempt(finalAnswers); } catch { /* Analysis is already visible; local history can retry next time. */ }
   }
   function checkOrNext() {
     if (selected === null) return Alert.alert('Cevap seçilmedi', 'Devam etmeden önce bir şık seçmelisin.');
