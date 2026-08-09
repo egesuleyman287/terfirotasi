@@ -1,0 +1,13 @@
+node_modules/
+.expo/
+.expo-home/
+.expo-user/
+.expo-*.log
+.expo-*.txt
+.repair*.log
+install.*.log
+dist/
+.env
+.env.*
+!.env.example
+npm-debug.log*
