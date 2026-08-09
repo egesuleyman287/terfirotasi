@@ -14,8 +14,12 @@ function unescapeJavaScriptText(value: string) {
 }
 
 function field(objectText: string, name: string) {
-  const match = objectText.match(new RegExp(`\\b${name}\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`));
+  const match = objectText.match(new RegExp(`\\b${name}\\s*:\\s*["']((?:\\\\.|[^"'\\\\])*)["']`));
   return match ? unescapeJavaScriptText(match[1]) : undefined;
+}
+
+function referenceField(objectText: string) {
+  return field(objectText, 'ref') ?? field(objectText, 'reference') ?? field(objectText, 'dayanak') ?? field(objectText, 'kaynak') ?? field(objectText, 'mevzuat') ?? field(objectText, 'source');
 }
 
 function questionObjects(arrayText: string) {
@@ -60,6 +64,6 @@ export function importQuestionsFromHtml(source: string): ImportedQuestion[] {
       : [];
 
     if (!text || choices.length < 4 || correct === undefined) return [];
-    return [{ text, choices, correctAnswer: Number(correct), reference: field(objectText, 'ref') }];
+    return [{ text, choices, correctAnswer: Number(correct), reference: referenceField(objectText) }];
   });
 }

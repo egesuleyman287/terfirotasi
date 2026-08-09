@@ -145,18 +145,24 @@ export default function App() {
     if (question.answer < 4) return { ...question, choices: question.choices.slice(0, 4) };
     return { ...question, choices: [...question.choices.slice(0, 3), question.choices[question.answer]], answer: 3 };
   }
+  function uploadedReference(topic: string, text: string, reference?: string) {
+    if (reference && reference !== 'Yüklenen soru') return reference;
+    const normalized = text.toLocaleLowerCase('tr-TR');
+    if (topic === '4857 Sayılı İş Kanunu' && normalized.includes('fazla çalışma ücreti')) return '4857 Sayılı İş Kanunu, madde 41 — Fazla çalışma ücreti.';
+    return `${topic} — ilgili mevzuat hükmü.`;
+  }
   function questionPoolFor(nextRole: Role, nextTopic: string) {
     const common = COMMON_QUESTION_CATALOG[nextTopic as keyof typeof COMMON_QUESTION_CATALOG] ?? [];
     const uploaded = storedQuestions
       .filter(question => question.topic === nextTopic && (COMMON_TOPICS.includes(nextTopic) || question.role === nextRole))
-      .map(question => ({ topic: question.topic, text: question.text, choices: question.choices, answer: question.correctAnswer, reference: question.reference ?? 'Yüklenen soru', explanation: 'Bu soru yönetici tarafından soru havuzuna eklenmiştir.' }));
+      .map(question => ({ topic: question.topic, text: question.text, choices: question.choices, answer: question.correctAnswer, reference: uploadedReference(question.topic, question.text, question.reference), explanation: 'Bu soru yönetici tarafından soru havuzuna eklenmiştir.' }));
     return [...common, ...uploaded].map(toFourOptions) as Question[];
   }
   function allQuestionPoolFor(nextRole: Role) {
     const common = Object.values(COMMON_QUESTION_CATALOG).flat() as Question[];
     const uploaded = storedQuestions
       .filter(question => COMMON_TOPICS.includes(question.topic) || question.role === nextRole)
-      .map(question => ({ topic: question.topic, text: question.text, choices: question.choices, answer: question.correctAnswer, reference: question.reference ?? 'Yüklenen soru', explanation: 'Bu soru yönetici tarafından soru havuzuna eklenmiştir.' }));
+      .map(question => ({ topic: question.topic, text: question.text, choices: question.choices, answer: question.correctAnswer, reference: uploadedReference(question.topic, question.text, question.reference), explanation: 'Bu soru yönetici tarafından soru havuzuna eklenmiştir.' }));
     return [...common, ...uploaded].map(toFourOptions);
   }
   async function startQuiz(_ignored?: unknown) {
