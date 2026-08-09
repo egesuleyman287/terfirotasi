@@ -314,6 +314,7 @@ export default function App() {
   }
   function Admin() {
     const adminTopics = [...COMMON_TOPICS, SPECIAL_TOPICS[adminRole]];
+    const adminQuestions = questionPoolFor(adminRole, adminTopic);
     return <><ScrollView contentContainerStyle={styles.page}>
       <View style={styles.hero}><Text style={styles.heroTitle}>Yönetici paneli</Text><Text style={styles.heroText}>HTML soru dosyanı seç, unvan ve konusunu belirle, ardından havuza yayınla.</Text></View>
       <View style={styles.card}>
@@ -329,6 +330,15 @@ export default function App() {
         <Pressable style={styles.outlineButton} onPress={publishQuestions}><Text style={styles.outlineText}>Soruları yayınla</Text></Pressable>
       </View>
       <View style={styles.card}><Text style={styles.cardTitle}>Yayınlanan soru havuzu</Text><Text style={styles.cardText}>Toplam {published} soru cihazda kalıcı olarak saklanıyor.</Text></View>
+      <View style={[styles.card, { gap: 14 }]}>
+        <View style={{ gap: 4 }}><Text style={styles.cardTitle}>Seçilen konunun soruları</Text><Text style={styles.cardText}>{adminRole} · {adminTopic} · {adminQuestions.length} soru</Text></View>
+        {adminQuestions.length === 0 ? <Text style={styles.cardText}>Bu konu için henüz soru bulunmuyor.</Text> : adminQuestions.map((question, questionIndex) => <View key={`${question.text}-${questionIndex}`} style={{ borderWidth: 1, borderColor: COLORS.line, borderRadius: 10, padding: 14, gap: 9, backgroundColor: '#FBFDFF' }}>
+          <Text style={{ color: COLORS.blue, fontWeight: '900', fontSize: 12 }}>SORU {questionIndex + 1}</Text>
+          <Text style={{ color: COLORS.ink, fontSize: 16, lineHeight: 23, fontWeight: '800' }}>{question.text}</Text>
+          <View style={{ gap: 6 }}>{question.choices.map((choice, choiceIndex) => <View key={`${choice}-${choiceIndex}`} style={{ flexDirection: 'row', gap: 9, alignItems: 'flex-start', padding: 9, borderRadius: 7, backgroundColor: choiceIndex === question.answer ? '#EAF8F0' : COLORS.white }}><Text style={{ color: choiceIndex === question.answer ? COLORS.green : COLORS.muted, fontWeight: '900' }}>{String.fromCharCode(65 + choiceIndex)})</Text><Text style={{ flex: 1, color: choiceIndex === question.answer ? COLORS.green : COLORS.ink, fontWeight: choiceIndex === question.answer ? '800' : '500', lineHeight: 19 }}>{choice}</Text>{choiceIndex === question.answer && <Text style={{ color: COLORS.green, fontWeight: '900', fontSize: 12 }}>DOĞRU</Text>}</View>)}</View>
+          <Text style={{ color: COLORS.muted, fontSize: 12, lineHeight: 17 }}>Dayanak: {question.reference}</Text>
+        </View>)}
+      </View>
     </ScrollView><Modal visible={!!publishFeedback} transparent animationType="fade" onRequestClose={() => setPublishFeedback(null)}>
       <View style={{ flex: 1, backgroundColor: '#0C203980', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <View style={{ width: '100%', maxWidth: 430, backgroundColor: COLORS.white, borderRadius: 16, padding: 24, gap: 15, alignItems: 'center' }}>
