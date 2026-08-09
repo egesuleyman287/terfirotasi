@@ -52,11 +52,11 @@ let QUESTIONS: Question[] = SEED_QUESTIONS_399;
 export default function App() {
   const { width: windowWidth } = useWindowDimensions();
   const compactHeader = windowWidth < 760;
-  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email.trim().toLowerCase());
   const [screen, setScreen] = useState<Screen>('home');
   const [infoRole, setInfoRole] = useState<Role>(ROLES[0].name);
   const [plan, setPlan] = useState<Plan>('free');
   const [user, setUser] = useState<LocalUser | null>(null);
+  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email.trim().toLowerCase());
   const [authName, setAuthName] = useState('');
   const [authEmail, setAuthEmail] = useState('');
   const [authPhone, setAuthPhone] = useState('');
