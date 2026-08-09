@@ -141,14 +141,14 @@ export default function App() {
   function questionPoolFor(nextRole: Role, nextTopic: string) {
     const common = COMMON_QUESTION_CATALOG[nextTopic as keyof typeof COMMON_QUESTION_CATALOG] ?? [];
     const uploaded = storedQuestions
-      .filter(question => question.role === nextRole && question.topic === nextTopic)
+      .filter(question => question.topic === nextTopic && (COMMON_TOPICS.includes(nextTopic) || question.role === nextRole))
       .map(question => ({ topic: question.topic, text: question.text, choices: question.choices, answer: question.correctAnswer, reference: question.reference ?? 'Yüklenen soru', explanation: 'Bu soru yönetici tarafından soru havuzuna eklenmiştir.' }));
     return [...common, ...uploaded].map(toFourOptions) as Question[];
   }
   function allQuestionPoolFor(nextRole: Role) {
     const common = Object.values(COMMON_QUESTION_CATALOG).flat() as Question[];
     const uploaded = storedQuestions
-      .filter(question => question.role === nextRole)
+      .filter(question => COMMON_TOPICS.includes(question.topic) || question.role === nextRole)
       .map(question => ({ topic: question.topic, text: question.text, choices: question.choices, answer: question.correctAnswer, reference: question.reference ?? 'Yüklenen soru', explanation: 'Bu soru yönetici tarafından soru havuzuna eklenmiştir.' }));
     return [...common, ...uploaded].map(toFourOptions);
   }
