@@ -122,6 +122,9 @@ export default function App() {
     document.addEventListener('pointerdown', closeCityMenu, true);
     return () => document.removeEventListener('pointerdown', closeCityMenu, true);
   }, [authCityOpen]);
+  useEffect(() => {
+    if (authFeedback?.type === 'error') setAuthFeedback(null);
+  }, [authName, authEmail, authPhone, authCity, authRole, authPassword, authPasswordConfirm, authAccepted]);
   const current = activeQuestions[index];
   const score = answers.filter((answer, i) => answer === activeQuestions[i].answer).length;
   const topics = useMemo(() => {
