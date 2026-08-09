@@ -155,6 +155,13 @@ export default function App() {
   async function startQuiz(_ignored?: unknown) {
     const byTopic = questionPoolFor(studyRole, studyTopic);
     const pool = studyMode === 'topic' ? byTopic : allQuestionPoolFor(studyRole);
+    // The configured administrator account is never subject to membership quotas or Premium locks.
+    if (isAdmin) {
+      if (!pool.length) { Alert.alert('Henüz soru yok', 'Bu konu için henüz soru eklenmemiş.'); return; }
+      if (studyMode === 'mock') setSecondsLeft(75 * 60);
+      QUESTIONS = pool; setRole(studyRole); setActiveQuestions(pool); setIndex(0); setSelected(null); setChecked(false); setAnswers([]); setScreen('quiz');
+      return;
+    }
     if (!pool.length) { Alert.alert('Henüz soru yok', 'Bu konu için soru havuzu oluşturulmamış. Yönetici panelinden HTML soru dosyası yükleyebilirsin.'); return; }
     if (plan === 'free' && studyMode === 'mock' && freeMockUsed) { setScreen('membership'); Alert.alert('Deneme hakkın kullanıldı', 'Ücretsiz üyelikte bir adet, her konudan bir soruluk deneme hakkı bulunur.'); return; }
     const freeMockQuestions = Array.from(pool.reduce((selected, question) => selected.has(question.topic) ? selected : selected.set(question.topic, question), new Map<string, Question>()).values());
