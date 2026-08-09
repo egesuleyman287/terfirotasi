@@ -308,7 +308,7 @@ export default function App() {
       <View style={styles.card}><Text style={styles.cardTitle}>Yayınlanan soru havuzu</Text><Text style={styles.cardText}>Toplam {published} soru cihazda kalıcı olarak saklanıyor.</Text></View>
     </ScrollView>;
   }
-  return <SafeAreaView style={styles.safe}><StatusBar style="light" />{Header}{screen === 'home' && <Home />}{screen === 'exams' && <Exams />}{screen === 'role-info' && <RoleInfo />}{screen === 'study' && StudySetup()}{screen === 'quiz' && <Quiz />}{screen === 'result' && <Result />}{screen === 'membership' && <Membership />}{screen === 'progress' && <Progress />}{screen === 'admin' && <Admin />}{screen === 'auth' && Auth()}</SafeAreaView>;
+  return <SafeAreaView style={styles.safe}><StatusBar style="light" />{Header}{screen === 'home' && Home()}{screen === 'exams' && Exams()}{screen === 'role-info' && RoleInfo()}{screen === 'study' && StudySetup()}{screen === 'quiz' && Quiz()}{screen === 'result' && Result()}{screen === 'membership' && Membership()}{screen === 'progress' && Progress()}{screen === 'admin' && Admin()}{screen === 'auth' && Auth()}</SafeAreaView>;
 }
 
 function Stat({ value, label }: { value: string; label: string }) { return <View style={styles.stat}><Text style={styles.statValue}>{value}</Text><Text style={styles.small}>{label}</Text></View>; }
