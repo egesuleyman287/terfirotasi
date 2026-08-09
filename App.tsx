@@ -117,12 +117,6 @@ export default function App() {
     return () => clearInterval(timer);
   }, [screen, secondsLeft]);
   useEffect(() => {
-    if (!authCityOpen || typeof document === 'undefined') return;
-    const closeCityMenu = () => setAuthCityOpen(false);
-    document.addEventListener('pointerdown', closeCityMenu, true);
-    return () => document.removeEventListener('pointerdown', closeCityMenu, true);
-  }, [authCityOpen]);
-  useEffect(() => {
     if (authFeedback?.type === 'error') setAuthFeedback(null);
   }, [authName, authEmail, authPhone, authCity, authRole, authPassword, authPasswordConfirm, authAccepted]);
   const current = activeQuestions[index];
