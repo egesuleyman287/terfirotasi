@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Image, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
@@ -85,6 +85,7 @@ export default function App() {
   const [importName, setImportName] = useState('Henüz bir dosya seçilmedi');
   const [importCount, setImportCount] = useState(0);
   const [pendingQuestions, setPendingQuestions] = useState<ImportedQuestion[]>([]);
+  const [importProblem, setImportProblem] = useState<string | null>(null);
   const [publishFeedback, setPublishFeedback] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [adminRole, setAdminRole] = useState<Role>('Büro Şefi');
   const [adminTopic, setAdminTopic] = useState(COMMON_TOPICS[0]);
@@ -225,6 +226,7 @@ export default function App() {
       const result = await DocumentPicker.getDocumentAsync({ type: ['text/html', 'text/plain'] });
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
+      setImportName(asset.name); setImportCount(0); setPendingQuestions([]); setImportProblem(null);
       // On web, DocumentPicker returns a browser File rather than a native file-system path.
       const webFile = (asset as unknown as { file?: { text: () => Promise<string> } }).file;
       const source = Platform.OS === 'web'
@@ -232,16 +234,14 @@ export default function App() {
         : await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
       const imported = importQuestionsFromHtml(source);
       setImportName(asset.name); setImportCount(imported.length); setPendingQuestions(imported);
-      setPublishFeedback(imported.length
-        ? { type: 'info', text: `${imported.length} soru bulundu. Yayınlamak için aşağıdaki düğmeye basabilirsin.` }
-        : { type: 'error', text: 'Bu dosyada uygun soru bulunamadı. Her soruda en az dört şık olmalı.' });
+      if (!imported.length) setImportProblem('Dosyada yayınlanabilecek soru bulunamadı. Her soruda en az dört şık ve doğru cevap bilgisi olmalı.');
     } catch (error) {
-      setPublishFeedback({ type: 'error', text: error instanceof Error ? `Dosya okunamadı: ${error.message}` : 'Dosya okunamadı. Lütfen tekrar dene.' });
+      setImportProblem(error instanceof Error ? `Dosya okunamadı: ${error.message}` : 'Dosya okunamadı. Lütfen tekrar dene.');
     }
   }
   async function publishQuestions() {
     if (!pendingQuestions.length) {
-      setPublishFeedback({ type: 'error', text: 'Önce HTML dosyasını seçip incelemelisin.' });
+      setPublishFeedback({ type: 'error', text: importProblem ?? 'Önce HTML dosyasını seçip incelemelisin.' });
       return;
     }
     try {
@@ -314,7 +314,7 @@ export default function App() {
   }
   function Admin() {
     const adminTopics = [...COMMON_TOPICS, SPECIAL_TOPICS[adminRole]];
-    return <ScrollView contentContainerStyle={styles.page}>
+    return <><ScrollView contentContainerStyle={styles.page}>
       <View style={styles.hero}><Text style={styles.heroTitle}>Yönetici paneli</Text><Text style={styles.heroText}>HTML soru dosyanı seç, unvan ve konusunu belirle, ardından havuza yayınla.</Text></View>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>1. Unvanı seç</Text>
@@ -327,12 +327,18 @@ export default function App() {
         <Pressable style={styles.primaryButton} onPress={inspectHtml}><Text style={styles.primaryText}>Dosyayı seç ve incele</Text></Pressable>
         {importCount > 0 && <Text style={styles.importInfo}>{importCount} soru bulundu. Dosya {adminRole} → {adminTopic} için yayınlanmaya hazır.</Text>}
         <Pressable style={styles.outlineButton} onPress={publishQuestions}><Text style={styles.outlineText}>Soruları yayınla</Text></Pressable>
-        {publishFeedback && <View style={{ marginTop: 14, borderRadius: 8, padding: 14, borderWidth: 1, borderColor: publishFeedback.type === 'success' ? '#82CDA5' : publishFeedback.type === 'error' ? '#F0A2A2' : '#9BC9E6', backgroundColor: publishFeedback.type === 'success' ? '#EAF8F0' : publishFeedback.type === 'error' ? '#FFF0F0' : '#EDF7FD' }}>
-          <Text style={{ color: publishFeedback.type === 'success' ? '#167044' : publishFeedback.type === 'error' ? '#A32A2A' : COLORS.blue, fontWeight: '800', lineHeight: 21 }}>{publishFeedback.type === 'success' ? '✓ Başarılı' : publishFeedback.type === 'error' ? '⚠ İşlem tamamlanamadı' : 'ℹ Bilgi'} — {publishFeedback.text}</Text>
-        </View>}
       </View>
       <View style={styles.card}><Text style={styles.cardTitle}>Yayınlanan soru havuzu</Text><Text style={styles.cardText}>Toplam {published} soru cihazda kalıcı olarak saklanıyor.</Text></View>
-    </ScrollView>;
+    </ScrollView><Modal visible={!!publishFeedback} transparent animationType="fade" onRequestClose={() => setPublishFeedback(null)}>
+      <View style={{ flex: 1, backgroundColor: '#0C203980', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <View style={{ width: '100%', maxWidth: 430, backgroundColor: COLORS.white, borderRadius: 16, padding: 24, gap: 15, alignItems: 'center' }}>
+          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: publishFeedback?.type === 'success' ? '#EAF8F0' : '#FFF0F0', alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 27 }}>{publishFeedback?.type === 'success' ? '✓' : '!'}</Text></View>
+          <Text style={{ color: COLORS.ink, fontSize: 20, fontWeight: '900', textAlign: 'center' }}>{publishFeedback?.type === 'success' ? 'Sorular başarıyla yayınlandı' : 'Sorular yayınlanamadı'}</Text>
+          <Text style={{ color: COLORS.muted, fontSize: 15, lineHeight: 22, textAlign: 'center' }}>{publishFeedback?.text}</Text>
+          <Pressable style={[styles.primaryButton, { alignSelf: 'stretch' }]} onPress={() => setPublishFeedback(null)}><Text style={styles.primaryText}>TAMAM</Text></Pressable>
+        </View>
+      </View>
+    </Modal></>;
   }
   return <SafeAreaView style={styles.safe}><StatusBar style="light" />{Header}{screen === 'home' && Home()}{screen === 'exams' && Exams()}{screen === 'role-info' && RoleInfo()}{screen === 'study' && StudySetup()}{screen === 'quiz' && Quiz()}{screen === 'result' && Result()}{screen === 'membership' && Membership()}{screen === 'progress' && Progress()}{screen === 'admin' && isAdmin && Admin()}{screen === 'auth' && Auth()}</SafeAreaView>;
 }

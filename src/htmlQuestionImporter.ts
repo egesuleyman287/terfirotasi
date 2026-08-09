@@ -47,7 +47,8 @@ function questionObjects(arrayText: string) {
  * It does not execute uploaded HTML or JavaScript.
  */
 export function importQuestionsFromHtml(source: string): ImportedQuestion[] {
-  const array = source.match(/const\s+questions\s*=\s*\[([\s\S]*?)\];\s*(?:const|let)\s+/i)?.[1];
+  // Accept files where the question array is followed by another variable, a function or the end of a script.
+  const array = source.match(/(?:const|let|var)\s+questions\s*=\s*\[([\s\S]*?)\];/i)?.[1];
   if (!array) return [];
 
   return questionObjects(array).flatMap(objectText => {
