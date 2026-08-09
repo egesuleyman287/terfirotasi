@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { importQuestionsFromHtml, type ImportedQuestion } from './src/htmlQuestionImporter';
-import { loadQuestionPool, saveImportedQuestions, type StoredQuestion } from './src/questionRepository';
+import { loadCloudQuestionPool, loadQuestionPool, saveCloudImportedQuestions, saveImportedQuestions, syncLocalQuestionPool, type StoredQuestion } from './src/questionRepository';
 import { currentLocalUser, removeLocalUser, saveLocalUser, type LocalUser } from './src/localAuth';
 import { clearRemoteSession, createRemoteAccount, EmailVerificationRequiredError, loginRemoteAccount, remoteProfile, resendVerificationEmail, sendPasswordResetEmail } from './src/supabaseAuth';
 import { SEED_QUESTIONS_399 } from './src/seedQuestions';
@@ -100,6 +100,12 @@ export default function App() {
   const [comments, setComments] = useState<{ id: string; author: string; text: string; date: string }[]>([]);
   const [commentText, setCommentText] = useState('');
 
+  function applyQuestionPool(pool: StoredQuestion[]) { setStoredQuestions(pool); setPublished(COMMON_QUESTION_COUNT + pool.length); }
+  async function refreshSharedQuestionPool(session: LocalUser, syncThisDevice = false) {
+    const pool = syncThisDevice ? await syncLocalQuestionPool(session) : await loadCloudQuestionPool();
+    applyQuestionPool(pool);
+  }
+
   useEffect(() => {
     loadQuestionPool().then(pool => { setStoredQuestions(pool); setPublished(COMMON_QUESTION_COUNT + pool.length); });
     AsyncStorage.getItem('terfi_free_mock_used').then(value => setFreeMockUsed(value === 'yes'));
@@ -112,6 +118,7 @@ export default function App() {
       setUser(saved);
       if (saved.id && saved.accessToken) {
         try { const profile = await remoteProfile(saved); setPlan(profile.plan); setFreeTopicUsed(profile.free_topic_used); setFreeMockUsed(profile.free_mock_used); } catch { /* Offline use keeps the last local session. */ }
+        try { await refreshSharedQuestionPool(saved, ADMIN_EMAILS.includes(saved.email.trim().toLowerCase())); } catch { /* The local pool stays available while the connection is unavailable. */ }
       }
     });
   }, []);
@@ -224,6 +231,7 @@ export default function App() {
       let profile = { plan: 'free' as Plan, free_topic_used: 0, free_mock_used: false };
       try { profile = await remoteProfile(signedUser); } catch { /* The profile trigger may need a moment; the signed-in user can still continue. */ }
       setUser(signedUser); setPlan(profile.plan); setFreeTopicUsed(profile.free_topic_used); setFreeMockUsed(profile.free_mock_used);
+      try { await refreshSharedQuestionPool(signedUser, ADMIN_EMAILS.includes(signedUser.email.trim().toLowerCase())); } catch { /* The local pool remains usable if the shared service is temporarily unavailable. */ }
       setStudyRole((signedUser.role as Role) ?? authRole); setStudyTopic(COMMON_TOPICS[0]); setTopicsOpen(false); setStudyMode('topic'); setQuestionCount(10); setScreen('home');
       Alert.alert(authMode === 'signup' ? 'Ücretsiz üyeliğin oluşturuldu' : 'Giriş yapıldı', `${signedUser.name}, şimdi konunu seçip çalışmaya başlayabilirsin.`);
     } catch (error) {
@@ -268,7 +276,9 @@ export default function App() {
     }
     try {
       const questionCount = pendingQuestions.length;
-      const pool = await saveImportedQuestions({ questions: pendingQuestions, role: adminRole, topic: adminTopic });
+      const pool = user?.accessToken
+        ? await saveCloudImportedQuestions({ questions: pendingQuestions, role: adminRole, topic: adminTopic, user })
+        : await saveImportedQuestions({ questions: pendingQuestions, role: adminRole, topic: adminTopic });
       setStoredQuestions(pool); setPublished(COMMON_QUESTION_COUNT + pool.length); setPendingQuestions([]); setImportCount(0);
       setImportName('Yayınlandı — yeni dosya seçebilirsin');
       setPublishFeedback({ type: 'success', text: `${questionCount} soru başarıyla ${adminRole} → ${adminTopic} havuzuna yüklendi.` });
