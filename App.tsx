@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Alert, Image, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
@@ -222,7 +222,11 @@ export default function App() {
     const result = await DocumentPicker.getDocumentAsync({ type: ['text/html', 'text/plain'] });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
-    const source = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+    // On web, DocumentPicker returns a browser File rather than a native file-system path.
+    const webFile = (asset as unknown as { file?: { text: () => Promise<string> } }).file;
+    const source = Platform.OS === 'web'
+      ? webFile ? await webFile.text() : await (await fetch(asset.uri)).text()
+      : await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
     const imported = importQuestionsFromHtml(source);
     setImportName(asset.name); setImportCount(imported.length); setPendingQuestions(imported);
     if (!imported.length) Alert.alert('Uygun soru bulunamadı', 'Bu dosyada beklenen soru formatı bulunamadı veya soruların dört şıktan az seçeneği var.');
