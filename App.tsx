@@ -85,6 +85,7 @@ export default function App() {
   const [importName, setImportName] = useState('Henüz bir dosya seçilmedi');
   const [importCount, setImportCount] = useState(0);
   const [pendingQuestions, setPendingQuestions] = useState<ImportedQuestion[]>([]);
+  const [publishFeedback, setPublishFeedback] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [adminRole, setAdminRole] = useState<Role>('Büro Şefi');
   const [adminTopic, setAdminTopic] = useState(COMMON_TOPICS[0]);
   const [published, setPublished] = useState(COMMON_QUESTION_COUNT);
@@ -219,23 +220,39 @@ export default function App() {
   }
   async function signOut() { await removeLocalUser(); await clearRemoteSession(); setUser(null); setPlan('free'); setScreen('home'); }
   async function inspectHtml() {
-    const result = await DocumentPicker.getDocumentAsync({ type: ['text/html', 'text/plain'] });
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    // On web, DocumentPicker returns a browser File rather than a native file-system path.
-    const webFile = (asset as unknown as { file?: { text: () => Promise<string> } }).file;
-    const source = Platform.OS === 'web'
-      ? webFile ? await webFile.text() : await (await fetch(asset.uri)).text()
-      : await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
-    const imported = importQuestionsFromHtml(source);
-    setImportName(asset.name); setImportCount(imported.length); setPendingQuestions(imported);
-    if (!imported.length) Alert.alert('Uygun soru bulunamadı', 'Bu dosyada beklenen soru formatı bulunamadı veya soruların dört şıktan az seçeneği var.');
+    try {
+      setPublishFeedback(null);
+      const result = await DocumentPicker.getDocumentAsync({ type: ['text/html', 'text/plain'] });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      // On web, DocumentPicker returns a browser File rather than a native file-system path.
+      const webFile = (asset as unknown as { file?: { text: () => Promise<string> } }).file;
+      const source = Platform.OS === 'web'
+        ? webFile ? await webFile.text() : await (await fetch(asset.uri)).text()
+        : await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+      const imported = importQuestionsFromHtml(source);
+      setImportName(asset.name); setImportCount(imported.length); setPendingQuestions(imported);
+      setPublishFeedback(imported.length
+        ? { type: 'info', text: `${imported.length} soru bulundu. Yayınlamak için aşağıdaki düğmeye basabilirsin.` }
+        : { type: 'error', text: 'Bu dosyada uygun soru bulunamadı. Her soruda en az dört şık olmalı.' });
+    } catch (error) {
+      setPublishFeedback({ type: 'error', text: error instanceof Error ? `Dosya okunamadı: ${error.message}` : 'Dosya okunamadı. Lütfen tekrar dene.' });
+    }
   }
   async function publishQuestions() {
-    if (!pendingQuestions.length) return Alert.alert('Dosya bekleniyor', 'Önce bir HTML dosyası seçip incelemelisin.');
-    const pool = await saveImportedQuestions({ questions: pendingQuestions, role: adminRole, topic: adminTopic });
-    setStoredQuestions(pool); setPublished(COMMON_QUESTION_COUNT + pool.length); setPendingQuestions([]); setImportCount(0);
-    Alert.alert('Sorular yayınlandı', `${pendingQuestions.length} soru ${adminRole} → ${adminTopic} havuzuna eklendi.`);
+    if (!pendingQuestions.length) {
+      setPublishFeedback({ type: 'error', text: 'Önce HTML dosyasını seçip incelemelisin.' });
+      return;
+    }
+    try {
+      const questionCount = pendingQuestions.length;
+      const pool = await saveImportedQuestions({ questions: pendingQuestions, role: adminRole, topic: adminTopic });
+      setStoredQuestions(pool); setPublished(COMMON_QUESTION_COUNT + pool.length); setPendingQuestions([]); setImportCount(0);
+      setImportName('Yayınlandı — yeni dosya seçebilirsin');
+      setPublishFeedback({ type: 'success', text: `${questionCount} soru başarıyla ${adminRole} → ${adminTopic} havuzuna yüklendi.` });
+    } catch (error) {
+      setPublishFeedback({ type: 'error', text: error instanceof Error ? `Yayınlama sırasında sorun oluştu: ${error.message}` : 'Yayınlama sırasında sorun oluştu. Lütfen tekrar dene.' });
+    }
   }
 
   const timerLabel = `${String(Math.floor(secondsLeft / 60)).padStart(2, '0')}:${String(secondsLeft % 60).padStart(2, '0')}`;
@@ -310,6 +327,9 @@ export default function App() {
         <Pressable style={styles.primaryButton} onPress={inspectHtml}><Text style={styles.primaryText}>Dosyayı seç ve incele</Text></Pressable>
         {importCount > 0 && <Text style={styles.importInfo}>{importCount} soru bulundu. Dosya {adminRole} → {adminTopic} için yayınlanmaya hazır.</Text>}
         <Pressable style={styles.outlineButton} onPress={publishQuestions}><Text style={styles.outlineText}>Soruları yayınla</Text></Pressable>
+        {publishFeedback && <View style={{ marginTop: 14, borderRadius: 8, padding: 14, borderWidth: 1, borderColor: publishFeedback.type === 'success' ? '#82CDA5' : publishFeedback.type === 'error' ? '#F0A2A2' : '#9BC9E6', backgroundColor: publishFeedback.type === 'success' ? '#EAF8F0' : publishFeedback.type === 'error' ? '#FFF0F0' : '#EDF7FD' }}>
+          <Text style={{ color: publishFeedback.type === 'success' ? '#167044' : publishFeedback.type === 'error' ? '#A32A2A' : COLORS.blue, fontWeight: '800', lineHeight: 21 }}>{publishFeedback.type === 'success' ? '✓ Başarılı' : publishFeedback.type === 'error' ? '⚠ İşlem tamamlanamadı' : 'ℹ Bilgi'} — {publishFeedback.text}</Text>
+        </View>}
       </View>
       <View style={styles.card}><Text style={styles.cardTitle}>Yayınlanan soru havuzu</Text><Text style={styles.cardText}>Toplam {published} soru cihazda kalıcı olarak saklanıyor.</Text></View>
     </ScrollView>;
