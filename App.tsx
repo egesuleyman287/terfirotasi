@@ -89,6 +89,7 @@ export default function App() {
   const [publishFeedback, setPublishFeedback] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [adminRole, setAdminRole] = useState<Role>('Büro Şefi');
   const [adminTopic, setAdminTopic] = useState(COMMON_TOPICS[0]);
+  const [adminSearch, setAdminSearch] = useState('');
   const [published, setPublished] = useState(COMMON_QUESTION_COUNT);
   const [storedQuestions, setStoredQuestions] = useState<StoredQuestion[]>([]);
   const [freeMockUsed, setFreeMockUsed] = useState(false);
@@ -315,25 +316,28 @@ export default function App() {
   function Admin() {
     const adminTopics = [...COMMON_TOPICS, SPECIAL_TOPICS[adminRole]];
     const adminQuestions = questionPoolFor(adminRole, adminTopic);
-    return <><ScrollView contentContainerStyle={styles.page}>
-      <View style={styles.hero}><Text style={styles.heroTitle}>Yönetici paneli</Text><Text style={styles.heroText}>HTML soru dosyanı seç, unvan ve konusunu belirle, ardından havuza yayınla.</Text></View>
+    const visibleAdminQuestions = adminQuestions.filter(question => `${question.text} ${question.choices.join(' ')}`.toLocaleLowerCase('tr-TR').includes(adminSearch.trim().toLocaleLowerCase('tr-TR')));
+    const uploadedForSelection = storedQuestions.filter(question => question.role === adminRole && question.topic === adminTopic).length;
+    return <><ScrollView contentContainerStyle={[styles.page, { maxWidth: 1280, width: '100%', alignSelf: 'center' }]}>
+      <View style={{ backgroundColor: COLORS.navy, borderRadius: 16, padding: compactHeader ? 18 : 25, gap: 16 }}><View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}><View style={{ flex: 1, minWidth: 230, gap: 5 }}><Text style={{ color: '#9FD9F6', fontWeight: '900', fontSize: 12, letterSpacing: .8 }}>YÖNETİCİ ÇALIŞMA ALANI</Text><Text style={{ color: COLORS.white, fontWeight: '900', fontSize: 27 }}>Soru bankası yönetimi</Text><Text style={{ color: '#DDEFFC', lineHeight: 20 }}>Soru havuzunu seç, dosyanı içe aktar ve yayınlamadan önce kontrol et.</Text></View><View style={{ backgroundColor: '#FFFFFF18', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}><Text style={{ color: '#DDEFFC', fontSize: 11 }}>TOPLAM SORU</Text><Text style={{ color: COLORS.white, fontSize: 24, fontWeight: '900' }}>{published}</Text></View></View><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}><View style={{ backgroundColor: '#FFFFFF12', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}><Text style={{ color: '#DDEFFC', fontSize: 11 }}>SEÇİLİ UNVAN</Text><Text style={{ color: COLORS.white, fontWeight: '800', fontSize: 13 }}>{adminRole}</Text></View><View style={{ backgroundColor: '#FFFFFF12', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}><Text style={{ color: '#DDEFFC', fontSize: 11 }}>SEÇİLİ KONU</Text><Text style={{ color: COLORS.white, fontWeight: '800', fontSize: 13 }}>{adminQuestions.length} soru</Text></View></View></View>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>1. Unvanı seç</Text>
+        <Text style={styles.setupLabel}>ADIM 1 · HEDEF HAVUZ</Text><Text style={styles.cardTitle}>Unvanı ve konuyu belirle</Text><Text style={styles.cardText}>Yükleyeceğin sorular yalnızca burada seçtiğin unvan ve konuya eklenir.</Text>
+        <Text style={styles.inputLabel}>Unvan</Text>
         <View style={styles.chipWrap}>{ROLES.map(item => <Pressable key={item.name} onPress={() => { setAdminRole(item.name); setAdminTopic(COMMON_TOPICS[0]); }} style={[styles.chip, adminRole === item.name && styles.chipActive]}><Text style={[styles.chipText, adminRole === item.name && styles.chipTextActive]}>{item.name}</Text></Pressable>)}</View>
-        <Text style={styles.cardTitle}>2. Konuyu seç</Text>
+        <Text style={styles.inputLabel}>Konu</Text>
         <View style={styles.chipWrap}>{adminTopics.map(topic => <Pressable key={topic} onPress={() => setAdminTopic(topic)} style={[styles.chip, adminTopic === topic && styles.chipActive]}><Text style={[styles.chipText, adminTopic === topic && styles.chipTextActive]}>{topic}</Text></Pressable>)}</View>
       </View>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>3. HTML soru dosyası</Text><Text style={styles.cardText}>{importName}</Text>
+        <Text style={styles.setupLabel}>ADIM 2 · DOSYA YÜKLEME</Text><Text style={styles.cardTitle}>HTML soru dosyası</Text><View style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.line, borderRadius: 9, padding: 12, backgroundColor: '#FBFDFF', gap: 4 }}><Text style={{ color: COLORS.ink, fontWeight: '700' }}>{importName}</Text><Text style={styles.cardText}>{importCount > 0 ? `${importCount} soru bulundu; yayınlamaya hazır.` : 'HTML dosyanı seçerek soru içeriğini kontrol et.'}</Text></View>
         <Pressable style={styles.primaryButton} onPress={inspectHtml}><Text style={styles.primaryText}>Dosyayı seç ve incele</Text></Pressable>
-        {importCount > 0 && <Text style={styles.importInfo}>{importCount} soru bulundu. Dosya {adminRole} → {adminTopic} için yayınlanmaya hazır.</Text>}
-        <Pressable style={styles.outlineButton} onPress={publishQuestions}><Text style={styles.outlineText}>Soruları yayınla</Text></Pressable>
+        <Pressable style={[styles.outlineButton, { borderColor: importCount > 0 ? COLORS.green : COLORS.line }]} onPress={publishQuestions}><Text style={[styles.outlineText, { color: importCount > 0 ? COLORS.green : COLORS.muted }]}>Soruları yayınla</Text></Pressable>
       </View>
       <View style={styles.card}><Text style={styles.cardTitle}>Yayınlanan soru havuzu</Text><Text style={styles.cardText}>Toplam {published} soru cihazda kalıcı olarak saklanıyor.</Text></View>
       <View style={[styles.card, { gap: 14 }]}>
-        <View style={{ gap: 4 }}><Text style={styles.cardTitle}>Seçilen konunun soruları</Text><Text style={styles.cardText}>{adminRole} · {adminTopic} · {adminQuestions.length} soru</Text></View>
-        {adminQuestions.length === 0 ? <Text style={styles.cardText}>Bu konu için henüz soru bulunmuyor.</Text> : adminQuestions.map((question, questionIndex) => <View key={`${question.text}-${questionIndex}`} style={{ borderWidth: 1, borderColor: COLORS.line, borderRadius: 10, padding: 14, gap: 9, backgroundColor: '#FBFDFF' }}>
-          <Text style={{ color: COLORS.blue, fontWeight: '900', fontSize: 12 }}>SORU {questionIndex + 1}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}><View style={{ gap: 4, flex: 1, minWidth: 200 }}><Text style={styles.setupLabel}>ADIM 3 · SORU HAVUZU</Text><Text style={styles.cardTitle}>Seçilen konunun soruları</Text><Text style={styles.cardText}>{adminRole} · {adminTopic} · {adminQuestions.length} toplam soru · {uploadedForSelection} yüklenen</Text></View><View style={{ backgroundColor: '#EAF5FA', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9 }}><Text style={{ color: COLORS.blue, fontWeight: '900' }}>{visibleAdminQuestions.length} gösteriliyor</Text></View></View>
+        <TextInput value={adminSearch} onChangeText={setAdminSearch} placeholder="Sorularda veya şıklarda ara..." placeholderTextColor={COLORS.muted} style={styles.input} autoCapitalize="none" />
+        {visibleAdminQuestions.length === 0 ? <Text style={styles.cardText}>{adminQuestions.length ? 'Aramana uygun soru bulunamadı.' : 'Bu konu için henüz soru bulunmuyor.'}</Text> : visibleAdminQuestions.map((question, questionIndex) => <View key={`${question.text}-${questionIndex}`} style={{ borderWidth: 1, borderColor: COLORS.line, borderRadius: 10, padding: 14, gap: 9, backgroundColor: '#FBFDFF' }}>
+          <Text style={{ color: COLORS.blue, fontWeight: '900', fontSize: 12 }}>SORU {adminQuestions.indexOf(question) + 1}</Text>
           <Text style={{ color: COLORS.ink, fontSize: 16, lineHeight: 23, fontWeight: '800' }}>{question.text}</Text>
           <View style={{ gap: 6 }}>{question.choices.map((choice, choiceIndex) => <View key={`${choice}-${choiceIndex}`} style={{ flexDirection: 'row', gap: 9, alignItems: 'flex-start', padding: 9, borderRadius: 7, backgroundColor: choiceIndex === question.answer ? '#EAF8F0' : COLORS.white }}><Text style={{ color: choiceIndex === question.answer ? COLORS.green : COLORS.muted, fontWeight: '900' }}>{String.fromCharCode(65 + choiceIndex)})</Text><Text style={{ flex: 1, color: choiceIndex === question.answer ? COLORS.green : COLORS.ink, fontWeight: choiceIndex === question.answer ? '800' : '500', lineHeight: 19 }}>{choice}</Text>{choiceIndex === question.answer && <Text style={{ color: COLORS.green, fontWeight: '900', fontSize: 12 }}>DOĞRU</Text>}</View>)}</View>
           <Text style={{ color: COLORS.muted, fontSize: 12, lineHeight: 17 }}>Dayanak: {question.reference}</Text>
