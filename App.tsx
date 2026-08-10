@@ -6,6 +6,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { importQuestionsFromHtml, type ImportedQuestion } from './src/htmlQuestionImporter';
 import { loadCloudQuestionPool, loadQuestionPool, saveCloudImportedQuestions, saveImportedQuestions, syncLocalQuestionPool, type StoredQuestion } from './src/questionRepository';
+import { loadMemberComments, publishMemberComment, type MemberComment } from './src/commentRepository';
 import { currentLocalUser, removeLocalUser, saveLocalUser, type LocalUser } from './src/localAuth';
 import { clearRemoteSession, createRemoteAccount, EmailVerificationRequiredError, loginRemoteAccount, remoteProfile, resendVerificationEmail, sendPasswordResetEmail } from './src/supabaseAuth';
 import { SEED_QUESTIONS_399 } from './src/seedQuestions';
@@ -99,7 +100,7 @@ export default function App() {
   const [secondsLeft, setSecondsLeft] = useState(75 * 60);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [wrongQuestions, setWrongQuestions] = useState<WrongQuestion[]>([]);
-  const [comments, setComments] = useState<{ id: string; author: string; text: string; date: string }[]>([]);
+  const [comments, setComments] = useState<MemberComment[]>([]);
   const [commentText, setCommentText] = useState('');
   const lastActivityRef = useRef(Date.now());
   const lastActivityWriteRef = useRef(0);
@@ -115,6 +116,7 @@ export default function App() {
     loadCloudQuestionPool()
       .then(applyQuestionPool)
       .catch(() => loadQuestionPool().then(applyQuestionPool));
+    loadMemberComments().then(setComments).catch(() => { /* Comment area stays empty until its one-time table setup is completed. */ });
     AsyncStorage.getItem('terfi_free_mock_used').then(value => setFreeMockUsed(value === 'yes'));
     AsyncStorage.getItem('terfi_free_topic_used').then(value => setFreeTopicUsed(Number(value) || 0));
     AsyncStorage.getItem('terfi_remembered_email').then(email => { if (email) { setAuthEmail(email); setAuthRemember(true); } });
@@ -372,7 +374,18 @@ export default function App() {
   function Membership() {
     const freeItems = ['Toplam 10 soru çözme hakkı', '11 soruluk 1 genel deneme', 'Sınırlı sınav analizi', 'Yorum yazabilme', 'Ders notlarına erişim'];
     const premiumItems = ['Sınırsız konu testi ve soru çözümü', '50 soruluk genel denemeler', 'Sınırsız ayrıntılı analiz', 'Yorum yazabilme ve ders notları', 'Özel mesaj ve deneme oluşturma', 'İnteraktif içerikler ve infografikler'];
-    const sendComment = () => { if (!user) { setAuthMode('signup'); setScreen('auth'); Alert.alert('Üyelik gerekli', 'Yorum yazmak için ücretsiz üyelik oluşturmalısın.'); return; } if (!commentText.trim()) return; setComments(items => [{ id: String(Date.now()), author: user.name, text: commentText.trim(), date: new Date().toLocaleDateString('tr-TR') }, ...items]); setCommentText(''); };
+    const sendComment = async () => {
+      if (!user) { setAuthMode('signup'); setScreen('auth'); Alert.alert('Üyelik gerekli', 'Yorum yazmak için ücretsiz üyelik oluşturmalısın.'); return; }
+      if (!commentText.trim()) { Alert.alert('Yorum gerekli', 'Yayınlamak için kısa bir yorum yazmalısın.'); return; }
+      try {
+        const savedComment = await publishMemberComment(user, commentText);
+        setComments(items => [savedComment, ...items]);
+        setCommentText('');
+        Alert.alert('Yorum yayınlandı', 'Yorumun kalıcı olarak kaydedildi ve herkesin görebileceği şekilde yayınlandı.');
+      } catch (error) {
+        Alert.alert('Yorum kaydedilemedi', error instanceof Error ? error.message : 'Lütfen tekrar dene.');
+      }
+    };
     const packageCard = { width: compactHeader ? '100%' : undefined, flex: compactHeader ? undefined : 1, minWidth: compactHeader ? 0 : 300, padding: compactHeader ? 18 : 30, gap: 18 } as const;
     return <ScrollView contentContainerStyle={styles.page}><View style={styles.hero}><Text style={styles.heroTitle}>Sana uygun paketi seç</Text><Text style={styles.heroText}>Ücretsiz başla; ihtiyacın olduğunda Premium ile sınırsız çalış.</Text></View><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 0, backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.line, borderRadius: 14, overflow: 'hidden' }}><View style={packageCard}><Text style={{ color: COLORS.blue, fontSize: 28, fontWeight: '900', textAlign: 'center' }}>ÜCRETSİZ</Text><View style={{ gap: 14 }}>{freeItems.map(item => <View key={item} style={{ flexDirection: 'row', gap: 10 }}><Text style={{ color: COLORS.blue, fontWeight: '900' }}>✓</Text><Text style={{ color: COLORS.ink, flex: 1 }}>{item}</Text></View>)}</View><Pressable style={[styles.primaryButton, { marginTop: 20 }]} onPress={() => user ? setScreen('home') : (() => { setAuthMode('signup'); setScreen('auth'); })()}><Text style={styles.primaryText}>ÜCRETSİZ BAŞLA</Text></Pressable></View><View style={{ width: compactHeader ? '100%' : 1, height: compactHeader ? 1 : undefined, backgroundColor: COLORS.blue }} /><View style={[packageCard, { backgroundColor: '#FBFDFF' }]}><View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'baseline', gap: 7 }}><Text style={{ color: COLORS.blue, fontSize: 34, fontWeight: '900' }}>500₺</Text><Text style={{ color: COLORS.blue, fontSize: 17 }}>/ Yıllık</Text></View><Text style={{ color: COLORS.muted, textAlign: 'center', fontWeight: '800' }}>PREMİUM</Text><View style={{ gap: 14 }}>{premiumItems.map(item => <View key={item} style={{ flexDirection: 'row', gap: 10 }}><Text style={{ color: COLORS.blue, fontWeight: '900' }}>✓</Text><Text style={{ color: COLORS.ink, flex: 1 }}>{item}</Text></View>)}</View><Pressable style={[styles.primaryButton, { marginTop: 20 }]} onPress={() => Alert.alert('Premium yakında', '500 TL yıllık Premium için güvenli ödeme adımını bir sonraki aşamada ekleyeceğiz.')}><Text style={styles.primaryText}>SATIN AL</Text></Pressable></View></View><View style={[styles.card, { gap: 13 }]}><Text style={styles.cardTitle}>Yorumlar</Text><Text style={styles.cardText}>Çalışma deneyimini diğer adaylarla paylaşabilirsin.</Text><TextInput value={commentText} onChangeText={setCommentText} placeholder={user ? 'Yorumunu yaz...' : 'Yorum yazmak için üye ol'} multiline style={[styles.input, { minHeight: 76, textAlignVertical: 'top' }]} /><Pressable style={[styles.primaryButton, { alignSelf: compactHeader ? 'stretch' : 'flex-start', paddingHorizontal: 22 }]} onPress={sendComment}><Text style={styles.primaryText}>YORUM YAYINLA</Text></Pressable>{comments.length ? comments.map(comment => <View key={comment.id} style={{ borderTopWidth: 1, borderTopColor: COLORS.line, paddingTop: 12, gap: 4 }}><Text style={{ color: COLORS.ink, fontWeight: '800' }}>{comment.author} <Text style={{ color: COLORS.muted, fontWeight: '500', fontSize: 12 }}>· {comment.date}</Text></Text><Text style={styles.cardText}>{comment.text}</Text></View>) : <Text style={{ color: COLORS.muted, fontSize: 13 }}>Henüz yorum yok. İlk yorumu sen yazabilirsin.</Text>}</View></ScrollView>;
   }
