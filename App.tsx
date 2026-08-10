@@ -107,7 +107,10 @@ export default function App() {
   }
 
   useEffect(() => {
-    loadQuestionPool().then(pool => { setStoredQuestions(pool); setPublished(COMMON_QUESTION_COUNT + pool.length); });
+    // All devices read the shared question bank immediately, even before a member signs in.
+    loadCloudQuestionPool()
+      .then(applyQuestionPool)
+      .catch(() => loadQuestionPool().then(applyQuestionPool));
     AsyncStorage.getItem('terfi_free_mock_used').then(value => setFreeMockUsed(value === 'yes'));
     AsyncStorage.getItem('terfi_free_topic_used').then(value => setFreeTopicUsed(Number(value) || 0));
     AsyncStorage.getItem('terfi_remembered_email').then(email => { if (email) { setAuthEmail(email); setAuthRemember(true); } });
