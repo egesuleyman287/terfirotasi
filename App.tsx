@@ -23,6 +23,8 @@ const TERFI_AMBLEM = require('./assets/terfi-rotasi-amblem.png');
 const TCDD_LOGO = require('./assets/tcdd-tasimacilik-logo.png');
 const REGISTER_ILLUSTRATION = require('./assets/register-illustration.png');
 const ADMIN_EMAILS = ['egesuleyman287@gmail.com'];
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
+const LAST_ACTIVITY_KEY = 'terfi_last_activity_v1';
 const ROLES: { name: Role; special: string }[] = [
   { name: 'Büro Şefi', special: '4688 Sayılı Kanun' },
   { name: 'Lojistik Şefi', special: 'Trenlerin Hazırlanması ve Trafiği' },
@@ -99,6 +101,8 @@ export default function App() {
   const [wrongQuestions, setWrongQuestions] = useState<WrongQuestion[]>([]);
   const [comments, setComments] = useState<{ id: string; author: string; text: string; date: string }[]>([]);
   const [commentText, setCommentText] = useState('');
+  const lastActivityRef = useRef(Date.now());
+  const lastActivityWriteRef = useRef(0);
 
   function applyQuestionPool(pool: StoredQuestion[]) { setStoredQuestions(pool); setPublished(COMMON_QUESTION_COUNT + pool.length); }
   async function refreshSharedQuestionPool(session: LocalUser, syncThisDevice = false) {
@@ -131,6 +135,44 @@ export default function App() {
     const timer = setInterval(() => setSecondsLeft(value => value - 1), 1000);
     return () => clearInterval(timer);
   }, [screen, secondsLeft]);
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const markActivity = () => {
+      const now = Date.now();
+      lastActivityRef.current = now;
+      if (now - lastActivityWriteRef.current > 15000) {
+        lastActivityWriteRef.current = now;
+        void AsyncStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+      }
+    };
+    const expireSession = async () => {
+      if (!active) return;
+      await removeLocalUser(); await clearRemoteSession(); await AsyncStorage.removeItem(LAST_ACTIVITY_KEY);
+      if (!active) return;
+      setUser(null); setPlan('free'); setScreen('home');
+      Alert.alert('Oturumun kapatıldı', 'Güvenliğin için 1 saat hareketsiz kalan oturumlar otomatik kapatılır.');
+    };
+    void AsyncStorage.getItem(LAST_ACTIVITY_KEY).then(value => {
+      const savedActivity = Number(value);
+      if (savedActivity && Date.now() - savedActivity >= INACTIVITY_TIMEOUT_MS) { void expireSession(); return; }
+      markActivity();
+    });
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.addEventListener('pointerdown', markActivity);
+      document.addEventListener('keydown', markActivity);
+      document.addEventListener('touchstart', markActivity);
+    }
+    const monitor = setInterval(() => { if (Date.now() - lastActivityRef.current >= INACTIVITY_TIMEOUT_MS) void expireSession(); }, 30000);
+    return () => {
+      active = false; clearInterval(monitor);
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        document.removeEventListener('pointerdown', markActivity);
+        document.removeEventListener('keydown', markActivity);
+        document.removeEventListener('touchstart', markActivity);
+      }
+    };
+  }, [user]);
   useEffect(() => {
     if (authFeedback?.type === 'error') setAuthFeedback(null);
   }, [authName, authEmail, authPhone, authCity, authRole, authPassword, authPasswordConfirm, authAccepted]);
@@ -258,7 +300,7 @@ export default function App() {
     const signedUser = await saveLocalUser({ name: authName.trim(), email: authEmail.trim().toLowerCase(), role: authRole, city: authCity.trim(), phone: authPhone.trim() });
     setUser(signedUser); setPlan('free'); await AsyncStorage.setItem('terfi_plan', 'free'); setStudyRole(authRole); setStudyTopic(COMMON_TOPICS[0]); setTopicsOpen(false); setStudyMode('topic'); setQuestionCount(10); setScreen('study'); Alert.alert('Ücretsiz üyeliğin oluşturuldu', `${signedUser.name}, şimdi konunu seçip çalışmaya başlayabilirsin.`);
   }
-  async function signOut() { await removeLocalUser(); await clearRemoteSession(); setUser(null); setPlan('free'); setScreen('home'); }
+  async function signOut() { await removeLocalUser(); await clearRemoteSession(); await AsyncStorage.removeItem(LAST_ACTIVITY_KEY); setUser(null); setPlan('free'); setScreen('home'); }
   async function inspectHtml() {
     try {
       setPublishFeedback(null);
