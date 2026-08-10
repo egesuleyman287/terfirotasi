@@ -284,10 +284,10 @@ export default function App() {
       return;
     }
     try {
+      if (!user?.accessToken || !isAdmin) throw new Error('Merkezi havuza soru eklemek için yönetici hesabınla çıkış yapıp yeniden giriş yapmalısın. Soru bu durumda yalnızca cihaza kaydedilmez.');
       const questionCount = pendingQuestions.length;
-      const pool = user?.accessToken
-        ? await saveCloudImportedQuestions({ questions: pendingQuestions, role: adminRole, topic: adminTopic, user })
-        : await saveImportedQuestions({ questions: pendingQuestions, role: adminRole, topic: adminTopic });
+      const pool = await saveCloudImportedQuestions({ questions: pendingQuestions, role: adminRole, topic: adminTopic, user });
+      await saveImportedQuestions({ questions: pendingQuestions, role: adminRole, topic: adminTopic });
       setStoredQuestions(pool); setPublished(COMMON_QUESTION_COUNT + pool.length); setPendingQuestions([]); setImportCount(0);
       setImportName('Yayınlandı — yeni dosya seçebilirsin');
       setPublishFeedback({ type: 'success', text: `${questionCount} soru başarıyla ${adminRole} → ${adminTopic} havuzuna yüklendi.` });
