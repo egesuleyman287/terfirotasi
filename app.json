@@ -1,10 +1,14 @@
 {
   "expo": {
-    "name": "Terfi Rotası",
+    "name": "Terfi Rotası - Kariyer Planlama",
     "slug": "terfi-rotasi",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "description": "Terfi Rotası görevde yükselme sınavı hazırlık ve kariyer planlama platformu.",
+    "web": {
+      "favicon": "./assets/terfi-rotasi-amblem.png"
+    },
     "android": {
       "package": "com.suleyman.terfirotasi"
     }
