@@ -6,6 +6,7 @@ const PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const SESSION_KEY = 'terfi_supabase_session_v1';
 
 type AuthPayload = { access_token?: string; user?: { id: string; email?: string; user_metadata?: Record<string, string>; identities?: unknown[] }; message?: string };
+type ErrorPayload = { message?: string; msg?: string; error?: string; error_description?: string; code?: string };
 export type ProfilePayload = { plan: 'free' | 'premium'; free_topic_used: number; free_mock_used: boolean };
 
 export class EmailVerificationRequiredError extends Error {
@@ -15,14 +16,23 @@ export class EmailVerificationRequiredError extends Error {
   }
 }
 
+function turkishAuthError(body: ErrorPayload): string {
+  const raw = [body.message, body.msg, body.error, body.error_description, body.code].filter(Boolean).join(' ').toLowerCase();
+  if (raw.includes('rate limit') || raw.includes('over_email_send_rate_limit')) return 'E-posta gönderim sınırına ulaşıldı. Lütfen tekrar göndermeden önce bir süre bekle.';
+  if (raw.includes('invalid login credentials') || raw.includes('invalid_credentials')) return 'E-posta adresi veya şifre hatalı. Şifreni bilmiyorsan “Şifremi Unuttum” bağlantısını kullanabilirsin.';
+  if (raw.includes('email not confirmed') || raw.includes('email_not_confirmed')) return 'E-posta adresin henüz onaylanmamış. Gelen kutundaki doğrulama bağlantısına tıklayıp tekrar giriş yap.';
+  if (raw.includes('user already registered') || raw.includes('email_exists') || raw.includes('already been registered')) return 'Bu e-posta adresiyle daha önce üyelik oluşturulmuş. “Giriş Yap” seçeneğini kullan veya şifreni sıfırla.';
+  if (raw.includes('password should be at least') || raw.includes('weak_password')) return 'Şifren en az 6 karakter olmalıdır.';
+  if (raw.includes('unable to validate email') || raw.includes('invalid email') || raw.includes('email_address_invalid')) return 'Geçerli bir e-posta adresi yazmalısın.';
+  if (raw.includes('signup is disabled')) return 'Yeni üyelik oluşturma şu anda geçici olarak kapalı. Lütfen daha sonra tekrar dene.';
+  if (raw.includes('network') || raw.includes('fetch')) return 'Sunucuya bağlanılamadı. İnternet bağlantını kontrol edip tekrar dene.';
+  return 'İşlem tamamlanamadı. Lütfen bilgilerini kontrol edip tekrar dene.';
+}
+
 async function api<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const response = await fetch(`${SUPABASE_URL}${path}`, { ...options, headers: { apikey: PUBLISHABLE_KEY, 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers ?? {}) } });
-  const body = await response.json().catch(() => ({}));
-  if (body.message === 'Email rate limit exceeded') throw new Error('E-posta gönderim sınırına ulaşıldı. Lütfen tekrar göndermeden önce bir süre bekle.');
-  if (body.message === 'Invalid login credentials') throw new Error('E-posta adresi veya şifre hatalı. Şifreni bilmiyorsan “Şifremi Unuttum” bağlantısını kullanabilirsin.');
-  if (body.message === 'Email not confirmed') throw new Error('E-posta adresin henüz onaylanmamış. Gelen kutundaki doğrulama bağlantısına tıklayıp tekrar giriş yap.');
-  if (body.message === 'User already registered') throw new Error('Bu e-posta adresiyle daha önce üyelik oluşturulmuş. “Giriş Yap” seçeneğini kullan veya şifreni sıfırla.');
-  if (!response.ok) throw new Error(body.msg ?? body.message ?? 'İşlem tamamlanamadı. Lütfen tekrar dene.');
+  const body = await response.json().catch(() => ({})) as ErrorPayload;
+  if (!response.ok) throw new Error(turkishAuthError(body));
   return body as T;
 }
 
