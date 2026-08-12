@@ -7,6 +7,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { importQuestionsFromHtml, type ImportedQuestion } from './src/htmlQuestionImporter';
 import { loadCloudQuestionPool, loadQuestionPool, saveCloudImportedQuestions, saveImportedQuestions, syncLocalQuestionPool, type StoredQuestion } from './src/questionRepository';
 import { loadMemberComments, publishMemberComment, type MemberComment } from './src/commentRepository';
+import { consumeMembershipQuota } from './src/membershipRepository';
 import { currentLocalUser, removeLocalUser, saveLocalUser, type LocalUser } from './src/localAuth';
 import { clearRemoteSession, createRemoteAccount, EmailVerificationRequiredError, loginRemoteAccount, remoteProfile, resendVerificationEmail, sendPasswordResetEmail } from './src/supabaseAuth';
 import { SEED_QUESTIONS_399 } from './src/seedQuestions';
@@ -229,13 +230,20 @@ export default function App() {
       return;
     }
     if (!pool.length) { Alert.alert('Henüz soru yok', 'Bu konu için soru havuzu oluşturulmamış. Yönetici panelinden HTML soru dosyası yükleyebilirsin.'); return; }
-    if (plan === 'free' && studyMode === 'mock' && freeMockUsed) { setScreen('membership'); Alert.alert('Deneme hakkın kullanıldı', 'Ücretsiz üyelikte bir adet, her konudan bir soruluk deneme hakkı bulunur.'); return; }
+    if (!user?.accessToken) { setAuthMode('login'); setScreen('auth'); Alert.alert('Giriş gerekli', 'Sınava başlamak için üyelik hesabınla giriş yapmalısın.'); return; }
     const freeMockQuestions = Array.from(pool.reduce((selected, question) => selected.has(question.topic) ? selected : selected.set(question.topic, question), new Map<string, Question>()).values());
-    if (plan === 'free' && studyMode === 'topic' && freeTopicUsed >= 10) { setScreen('membership'); Alert.alert('Ücretsiz soru hakkın kullanıldı', 'Ücretsiz üyelikte toplam 10 soru çözme hakkı bulunur.'); return; }
-    const allowedCount = plan === 'free' && studyMode === 'topic' ? 10 - freeTopicUsed : studyMode === 'mock' && plan === 'premium' ? 50 : questionCount;
-    const chosen = plan === 'free' && studyMode === 'mock' ? freeMockQuestions : pool.slice(0, Math.min(allowedCount, pool.length));
-    if (plan === 'free' && studyMode === 'mock') { await AsyncStorage.setItem('terfi_free_mock_used', 'yes'); setFreeMockUsed(true); }
-    if (plan === 'free' && studyMode === 'topic') { const nextUsed = freeTopicUsed + chosen.length; await AsyncStorage.setItem('terfi_free_topic_used', String(nextUsed)); setFreeTopicUsed(nextUsed); }
+    let grant;
+    try {
+      const requestedCount = studyMode === 'mock' ? 50 : Math.min(questionCount, pool.length);
+      grant = await consumeMembershipQuota(user, studyMode === 'mock' ? 'mock' : 'topic', requestedCount);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Üyelik hakkın doğrulanamadı.';
+      if (message.includes('hakkın kullanıldı')) setScreen('membership');
+      Alert.alert('Sınav başlatılamadı', message);
+      return;
+    }
+    setPlan(grant.plan); setFreeTopicUsed(grant.free_topic_used); setFreeMockUsed(grant.free_mock_used);
+    const chosen = studyMode === 'mock' && grant.plan === 'free' ? freeMockQuestions : pool.slice(0, Math.min(grant.allowed_count, pool.length));
     if (studyMode === 'mock') { setSecondsLeft(75 * 60); Alert.alert('Deneme başladı', 'Süre: 75 dakika. Süre dolduğunda analiz ekranı otomatik açılır.'); }
     QUESTIONS = chosen; setRole(studyRole); setActiveQuestions(chosen); setIndex(0); setSelected(null); setChecked(false); setAnswers([]); setScreen('quiz');
   }
@@ -274,7 +282,6 @@ export default function App() {
     if (index === activeQuestions.length - 1) { void recordAttempt(nextAnswers); setScreen('result'); return; }
     setSelected(null); setChecked(false); setIndex(currentIndex => currentIndex + 1);
   }
-  async function changePlan(nextPlan: Plan) { setPlan(nextPlan); await AsyncStorage.setItem('terfi_plan', nextPlan); Alert.alert(nextPlan === 'premium' ? 'Premium etkin' : 'Ücretsiz plan etkin', nextPlan === 'premium' ? 'Bu ilk sürümde Premium durumu cihazında kaydedildi.' : 'Toplam 10 soru ve bir adet, her konudan birer soruluk deneme aktif.'); }
   async function signInRemote() {
     if (!authEmail.includes('@') || authPassword.length < 6) { setAuthFeedback({ type: 'error', text: 'Geçerli e-posta ve en az 6 karakterlik şifre zorunludur.' }); return; }
     if (authMode === 'signup' && (!authName.trim() || !authCity.trim() || authPhone.replace(/\D/g, '').length < 10)) { setAuthFeedback({ type: 'error', text: 'Ad soyad, unvan, il ve en az 10 haneli telefon numarası zorunludur.' }); return; }
