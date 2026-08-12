@@ -127,7 +127,7 @@ export default function App() {
     loadMemberComments().then(setComments).catch(() => { /* Comment area stays empty until its one-time table setup is completed. */ });
     AsyncStorage.getItem('terfi_free_mock_used').then(value => setFreeMockUsed(value === 'yes'));
     AsyncStorage.getItem('terfi_free_topic_used').then(value => setFreeTopicUsed(Number(value) || 0));
-    AsyncStorage.getItem('terfi_remembered_email').then(email => { if (email) { setAuthEmail(email); setAuthRemember(true); } });
+    AsyncStorage.getItem('terfi_remembered_email').then(email => { if (email) setAuthRemember(true); });
     AsyncStorage.getItem('terfi_attempts_v1').then(value => { if (value) setAttempts(JSON.parse(value) as Attempt[]); });
     AsyncStorage.getItem('terfi_wrongs_v1').then(value => { if (value) setWrongQuestions(JSON.parse(value) as WrongQuestion[]); });
     currentLocalUser().then(async saved => {
@@ -186,6 +186,30 @@ export default function App() {
   useEffect(() => {
     if (authFeedback?.type === 'error') setAuthFeedback(null);
   }, [authName, authEmail, authPhone, authCity, authRole, authPassword, authPasswordConfirm, authAccepted]);
+  useEffect(() => {
+    // A registration form must never look half-filled after the visitor leaves it.
+    // The only exception is the explicitly requested "Beni Hatırla" e-mail on the login form.
+    if (screen !== 'auth') {
+      setAuthName('');
+      setAuthEmail('');
+      setAuthPhone('');
+      setAuthCity('');
+      setAuthCityOpen(false);
+      setAuthRole(ROLES[0].name);
+      setAuthPassword('');
+      setAuthPasswordConfirm('');
+      setAuthAccepted(false);
+      setAuthFeedback(null);
+      setEmailVerificationPending(false);
+      setPendingVerificationEmail('');
+      return;
+    }
+    if (authMode === 'login') {
+      void AsyncStorage.getItem('terfi_remembered_email').then(email => {
+        if (email) { setAuthEmail(email); setAuthRemember(true); }
+      });
+    }
+  }, [screen, authMode]);
   const current = activeQuestions[index];
   const score = answers.filter((answer, i) => answer === activeQuestions[i].answer).length;
   const topics = useMemo(() => {
