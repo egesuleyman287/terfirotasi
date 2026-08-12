@@ -75,6 +75,7 @@ export default function App() {
   const [authPasswordConfirm, setAuthPasswordConfirm] = useState('');
   const [authRemember, setAuthRemember] = useState(false);
   const [authAccepted, setAuthAccepted] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
   const [authFeedback, setAuthFeedback] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [emailVerificationPending, setEmailVerificationPending] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
@@ -193,7 +194,7 @@ export default function App() {
     return Object.entries(group);
   }, [answers, activeQuestions]);
 
-  function openStudy(nextRole: Role) { if (!user) { setAuthRole(nextRole); Alert.alert('Ücretsiz üyelik oluştur', 'Sorulara başlamadan önce ücretsiz hesabını oluşturmalısın.'); setScreen('auth'); return; } setStudyRole(nextRole); setStudyTopic(COMMON_TOPICS[0]); setTopicsOpen(false); setStudyMode('topic'); setQuestionCount(10); setScreen('study'); }
+  function openStudy(nextRole: Role) { if (!user) { setAuthRole(nextRole); setAuthMode('signup'); setEmailVerificationPending(false); setAuthFeedback(null); Alert.alert('Ücretsiz üyelik oluştur', 'Sorulara başlamadan önce ücretsiz hesabını oluşturmalısın.'); setScreen('auth'); return; } setStudyRole(nextRole); setStudyTopic(COMMON_TOPICS[0]); setTopicsOpen(false); setStudyMode('topic'); setQuestionCount(10); setScreen('study'); }
   function toFourOptions(question: Question): Question {
     if (question.choices.length <= 4) return question;
     if (question.answer < 4) return { ...question, choices: question.choices.slice(0, 4) };
@@ -283,11 +284,13 @@ export default function App() {
     setSelected(null); setChecked(false); setIndex(currentIndex => currentIndex + 1);
   }
   async function signInRemote() {
+    if (authBusy) return;
     if (!authEmail.includes('@') || authPassword.length < 6) { setAuthFeedback({ type: 'error', text: 'Geçerli e-posta ve en az 6 karakterlik şifre zorunludur.' }); return; }
     if (authMode === 'signup' && (!authName.trim() || !authCity.trim() || authPhone.replace(/\D/g, '').length < 10)) { setAuthFeedback({ type: 'error', text: 'Ad soyad, unvan, il ve en az 10 haneli telefon numarası zorunludur.' }); return; }
     if (authMode === 'signup' && authPassword !== authPasswordConfirm) { setAuthFeedback({ type: 'error', text: 'Şifreler eşleşmiyor. Lütfen iki alana da aynı şifreyi yaz.' }); return; }
     if (authMode === 'signup' && !authAccepted) { setAuthFeedback({ type: 'error', text: 'Devam etmek için üyelik bilgilerini saklama açıklamasını onaylamalısın.' }); return; }
     setAuthFeedback(null);
+    setAuthBusy(true);
     try {
       const signedUser = authMode === 'signup'
         ? await createRemoteAccount({ name: authName.trim(), email: authEmail.trim().toLowerCase(), role: authRole, city: authCity.trim(), phone: authPhone.trim() }, authPassword)
@@ -308,6 +311,8 @@ export default function App() {
         return;
       }
       setAuthFeedback({ type: 'error', text: error instanceof Error ? error.message : 'Bağlantını kontrol edip tekrar dene.' });
+    } finally {
+      setAuthBusy(false);
     }
   }
   async function signIn() {
@@ -451,8 +456,8 @@ export default function App() {
         {register && <><Text style={styles.inputLabel}>Şifre Tekrar</Text><TextInput value={authPasswordConfirm} onChangeText={setAuthPasswordConfirm} placeholder="Şifreni yeniden yaz" style={styles.input} secureTextEntry autoCapitalize="none" /><Text style={styles.inputLabel}>Kurumunuz</Text><View style={[styles.input, { justifyContent: 'center', backgroundColor: '#F7FAFC' }]}><Text style={styles.cardText}>TCDD Taşımacılık A.Ş.</Text></View><Text style={styles.inputLabel}>Unvanın</Text><View style={styles.chipWrap}>{ROLES.map(item => <Pressable key={item.name} onPress={() => setAuthRole(item.name)} style={[styles.chip, authRole === item.name && styles.chipActive]}><Text style={[styles.chipText, authRole === item.name && styles.chipTextActive]}>{item.name}</Text></Pressable>)}</View><Text style={styles.inputLabel}>İlin</Text><Pressable onPress={() => setAuthCityOpen(value => !value)} style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}><Text style={{ color: authCity ? COLORS.ink : COLORS.muted }}>{authCity || 'İl seç'}</Text><Text style={{ color: COLORS.blue, fontSize: 16, fontWeight: '900' }}>{authCityOpen ? '⌃' : '⌄'}</Text></Pressable>{authCityOpen && <View style={{ maxHeight: 300, borderWidth: 1, borderColor: COLORS.line, borderRadius: 8, backgroundColor: COLORS.white, overflow: 'hidden' }}><ScrollView nestedScrollEnabled showsVerticalScrollIndicator contentContainerStyle={{ paddingVertical: 4 }}><View style={{ paddingHorizontal: 15, paddingVertical: 10, backgroundColor: COLORS.blue }}><Text style={{ color: COLORS.white, fontWeight: '800' }}>Bir İl Seçin</Text></View>{CITIES.map(city => <Pressable key={city} onPress={() => { setAuthCity(city); setAuthCityOpen(false); }} style={{ borderBottomWidth: 1, borderBottomColor: COLORS.line, paddingHorizontal: 15, paddingVertical: 11, backgroundColor: authCity === city ? '#EAF5FA' : COLORS.white }}><Text style={{ color: authCity === city ? COLORS.blue : COLORS.ink, fontSize: 14, fontWeight: authCity === city ? '800' : '500' }}>{city}</Text></Pressable>)}</ScrollView></View>}<Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 4 }} onPress={() => setAuthAccepted(value => !value)}><View style={{ width: 20, height: 20, borderRadius: 5, borderWidth: 1, borderColor: authAccepted ? COLORS.blue : COLORS.line, backgroundColor: authAccepted ? COLORS.blue : COLORS.white, alignItems: 'center', justifyContent: 'center' }}>{authAccepted && <Text style={{ color: COLORS.white, fontWeight: '800' }}>✓</Text>}</View><Text style={{ flex: 1, color: COLORS.muted, fontSize: 12, lineHeight: 17 }}>Bilgilerimin üyelik hesabım için saklanmasını kabul ediyorum.</Text></Pressable></>}
         <Text style={styles.cardText}>Ücretsiz üyelik: toplam 10 soru ve 1 deneme hakkı.</Text>
         {authFeedback && <View style={{ backgroundColor: authFeedback.type === 'success' ? '#EAF7EF' : '#FFF0F1', borderLeftWidth: 4, borderLeftColor: authFeedback.type === 'success' ? COLORS.green : COLORS.red, borderRadius: 7, padding: 11 }}><Text style={{ color: authFeedback.type === 'success' ? COLORS.green : '#B4232C', fontWeight: '700', lineHeight: 19 }}>{authFeedback.text}</Text></View>}
-        <Pressable style={styles.primaryButton} onPress={signInRemote}><Text style={styles.primaryText}>{register ? 'Kayıt Oluştur' : 'Giriş Yap'}</Text></Pressable>
-        <Pressable onPress={() => { setAuthMode(register ? 'login' : 'signup'); setAuthFeedback(null); }}><Text style={[styles.outlineText, { textAlign: 'center' }]}>{register ? 'Zaten üye misin? Giriş yap' : 'Hesabın yok mu? Kayıt oluştur'}</Text></Pressable>
+        <Pressable disabled={authBusy} style={[styles.primaryButton, authBusy && { opacity: 0.65 }]} onPress={signInRemote}><Text style={styles.primaryText}>{authBusy ? 'LÜTFEN BEKLE...' : register ? 'KAYIT OLUŞTUR' : 'GİRİŞ YAP'}</Text></Pressable>
+        <Pressable disabled={authBusy} onPress={() => { setAuthMode(register ? 'login' : 'signup'); setAuthFeedback(null); setEmailVerificationPending(false); }}><Text style={[styles.outlineText, { textAlign: 'center', opacity: authBusy ? .6 : 1 }]}>{register ? 'Zaten üye misin? Giriş yap' : 'Hesabın yok mu? Kayıt oluştur'}</Text></Pressable>
       </View>
       </View>
       <View style={{ flex: compactHeader ? undefined : 1, width: compactHeader ? '100%' : undefined, minWidth: compactHeader ? 0 : 330, minHeight: compactHeader ? 300 : 640, backgroundColor: COLORS.blue, alignItems: 'center', justifyContent: 'center', padding: compactHeader ? 16 : 28, gap: 18 }}><Image source={REGISTER_ILLUSTRATION} style={{ width: '100%', height: compactHeader ? 210 : 470, resizeMode: 'contain' }} /><View style={{ alignItems: 'center', gap: 5 }}><Text style={{ color: COLORS.white, fontWeight: '900', fontSize: 22 }}>Hedefine bir adım daha yaklaş</Text><Text style={{ color: '#DDEFFC', textAlign: 'center', fontSize: 14 }}>Konu çalış, denemeni çöz ve gelişimini takip et.</Text></View></View>

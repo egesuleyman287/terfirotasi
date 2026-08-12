@@ -18,8 +18,11 @@ export class EmailVerificationRequiredError extends Error {
 async function api<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const response = await fetch(`${SUPABASE_URL}${path}`, { ...options, headers: { apikey: PUBLISHABLE_KEY, 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers ?? {}) } });
   const body = await response.json().catch(() => ({}));
-  if (body.message === 'Email rate limit exceeded') throw new Error('E-posta gönderim sınırına ulaşıldı. Supabase deneme hesabı saatte yalnızca 2 e-posta gönderebiliyor. Lütfen bir saat bekle veya yönetici ayarından e-posta doğrulamasını geçici olarak kapat.');
-  if (!response.ok) throw new Error(body.msg ?? body.message ?? 'İşlem tamamlanamadı.');
+  if (body.message === 'Email rate limit exceeded') throw new Error('E-posta gönderim sınırına ulaşıldı. Lütfen tekrar göndermeden önce bir süre bekle.');
+  if (body.message === 'Invalid login credentials') throw new Error('E-posta adresi veya şifre hatalı. Şifreni bilmiyorsan “Şifremi Unuttum” bağlantısını kullanabilirsin.');
+  if (body.message === 'Email not confirmed') throw new Error('E-posta adresin henüz onaylanmamış. Gelen kutundaki doğrulama bağlantısına tıklayıp tekrar giriş yap.');
+  if (body.message === 'User already registered') throw new Error('Bu e-posta adresiyle daha önce üyelik oluşturulmuş. “Giriş Yap” seçeneğini kullan veya şifreni sıfırla.');
+  if (!response.ok) throw new Error(body.msg ?? body.message ?? 'İşlem tamamlanamadı. Lütfen tekrar dene.');
   return body as T;
 }
 
