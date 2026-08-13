@@ -52,8 +52,12 @@ export async function resendVerificationEmail(email: string) {
   await api('/auth/v1/resend', { method: 'POST', body: JSON.stringify({ type: 'signup', email }) });
 }
 
-export async function sendPasswordResetEmail(email: string) {
-  await api('/auth/v1/recover', { method: 'POST', body: JSON.stringify({ email }) });
+export async function sendPasswordResetEmail(email: string, redirectTo?: string) {
+  await api('/auth/v1/recover', { method: 'POST', body: JSON.stringify({ email, ...(redirectTo ? { redirect_to: redirectTo } : {}) }) });
+}
+
+export async function updateRemotePassword(accessToken: string, password: string) {
+  await api('/auth/v1/user', { method: 'PUT', body: JSON.stringify({ password }) }, accessToken);
 }
 
 export async function loginRemoteAccount(email: string, password: string): Promise<LocalUser> {
