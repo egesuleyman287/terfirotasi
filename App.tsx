@@ -17,9 +17,10 @@ type Role = string;
 type InstitutionId = 'tcdd' | 'icisleri';
 type RoleDefinition = { name: Role; special: string; topics: string[] };
 type Institution = { id: InstitutionId; name: string; detail: string; logo?: any; mark?: string; roles: RoleDefinition[] };
-type Screen = 'home' | 'exams' | 'role-info' | 'study' | 'quiz' | 'result' | 'membership' | 'progress' | 'admin' | 'auth' | 'reset-password' | 'legal';
+type Screen = 'home' | 'exams' | 'institution-info' | 'role-info' | 'study' | 'quiz' | 'result' | 'membership' | 'progress' | 'admin' | 'auth' | 'reset-password' | 'legal';
 type Plan = 'free' | 'premium';
 type LegalTopic = 'membership' | 'privacy' | 'kvkk' | 'cookies';
+type InstitutionOverview = { title: string; intro: string; facts: { label: string; value: string }[]; sections: { title: string; text: string }[]; faqs: { question: string; answer: string }[] };
 type Question = { topic: string; text: string; choices: string[]; answer: number; reference: string; explanation: string };
 type Attempt = { id: string; role: Role; correct: number; total: number; date: string };
 type WrongQuestion = Question & { id: string; role: Role; date: string };
@@ -67,6 +68,40 @@ const INSTITUTIONS: Institution[] = [
   { id: 'tcdd', name: 'TCDD Taşımacılık A.Ş.', detail: 'Görevde yükselme sınavları', logo: TCDD_LOGO, roles: TCDD_ROLES },
   { id: 'icisleri', name: 'T.C. İçişleri Bakanlığı', detail: 'Görevde yükselme ve unvan değişikliği', logo: ICISLERI_LOGO, mark: 'T.C.', roles: ICISLERI_ROLES },
 ];
+const INSTITUTION_OVERVIEWS: Record<InstitutionId, InstitutionOverview> = {
+  tcdd: {
+    title: 'TCDD Taşımacılık A.Ş. Görevde Yükselme Hazırlığı',
+    intro: 'Bu sayfada TCDD Taşımacılık A.Ş. için eklenen unvanları, sorumlu olunan konu başlıklarını ve çalışma akışını inceleyebilirsin.',
+    facts: [{ label: 'KAPSAM', value: '9 unvan' }, { label: 'KONU BAŞLIKLARI', value: 'Unvana göre değişir' }, { label: 'ÇALIŞMA ŞEKLİ', value: 'Konu testi ve deneme' }, { label: 'SONUÇ', value: 'Konu bazlı analiz' }],
+    sections: [
+      { title: 'Sınav hazırlığı nasıl ilerler?', text: 'Unvanını seçtikten sonra sorumlu olduğun mevzuat başlıklarını görür, konu bazlı sorularla çalışır ve deneme sonunda analizini inceleyebilirsin.' },
+      { title: 'Unvana özel kapsam', text: 'Ortak konuların yanında her unvana ait özel konu başlıkları bulunur. Güncel kapsamı unvan kartını açarak görüntüleyebilirsin.' },
+      { title: 'Çalışmaya başla', text: 'Ücretsiz üyelikle soru çözmeye başlayabilir; ilerledikçe doğru ve yanlışlarını konu bazında takip edebilirsin.' },
+    ],
+    faqs: [
+      { question: 'Hangi unvanlar için içerik var?', answer: 'Güncel unvanları Sınavlar bölümünden görebilir, her kartın altındaki konu listesini açabilirsin.' },
+      { question: 'Konular nerede listelenir?', answer: 'Kurum ve unvan seçimi yapıldıktan sonra o unvana ait sorumlu konu başlıkları görünür.' },
+      { question: 'Deneme sonunda ne görürüm?', answer: 'Doğru-yanlış sayın ve konu bazlı sonuç analizin gösterilir.' },
+    ],
+  },
+  icisleri: {
+    title: 'İçişleri Bakanlığı Görevde Yükselme Sınavı 2026',
+    intro: 'İçişleri Bakanlığı görevde yükselme ve unvan değişikliği yazılı sınavına yönelik başvuru takvimini, sınav kapsamını ve hazırlık yolunu bu sayfadan takip edebilirsin.',
+    facts: [{ label: 'DUYURU TARİHİ', value: '5 Ağustos 2026' }, { label: 'BAŞVURU TARİHLERİ', value: '28 Eylül – 2 Ekim 2026' }, { label: 'YAZILI SINAV', value: '28 Kasım 2026' }, { label: 'ATAMA SİSTEMİ', value: 'Tercih sistemi' }, { label: 'TEŞKİLAT', value: 'Merkez ve taşra' }],
+    sections: [
+      { title: 'İçişleri Bakanlığı GYS nedir?', text: 'Görevde yükselme ve unvan değişikliği süreçlerinde adayların genel mevzuat ve kuruma özgü bilgilerini değerlendirmeye yönelik sınav sürecidir. Kesin şartlar ve uygulama esasları resmî duyuru ile belirlenir.' },
+      { title: 'Sınav şekli ve puanlama', text: 'Yazılı sınav, sözlü sınav ve puanlama usulü ilgili yönetmelik ile resmî sınav duyurusunda açıklanır. Başvuru şartları, kontenjanlar ve değerlendirme ölçütleri için resmî duyuruyu esas almalısın.' },
+      { title: 'Nasıl hazırlanılır?', text: 'Unvanına özel konu listesini aç, her başlık için soru çöz ve deneme sonunda eksiklerini analiz et. VHKİ ve Şube Müdürü unvanları için konu başlıkları sistemde hazırdır.' },
+    ],
+    faqs: [
+      { question: 'İçişleri Bakanlığı görevde yükselme sınavı ne zaman?', answer: 'Sayfadaki sınav bilgisine göre yazılı sınav 28 Kasım 2026 tarihinde planlanmıştır. Güncel değişiklikler için resmî duyuruyu mutlaka kontrol et.' },
+      { question: 'Başvuru nasıl yapılır?', answer: 'Başvuru yöntemi ve istenen belgeler resmî ilanla belirlenir. Başvuru takvimi için kurum duyurularını takip etmelisin.' },
+      { question: 'Hangi konular çıkar?', answer: 'Unvana göre konu kapsamı değişir. Sınavlar bölümünde VHKİ veya Şube Müdürü kartını açarak güncel konu listesini görebilirsin.' },
+      { question: 'Kimler başvurabilir?', answer: 'Kadroya göre aranan şartlar ve başvuru koşulları resmî duyuruda yer alır.' },
+      { question: 'Tercih sistemi ne anlama gelir?', answer: 'Atamalar, resmî duyuruda açıklanan tercih ve başarı sıralaması kurallarına göre yapılır.' },
+    ],
+  },
+};
 // Yeni bir kurum yalnızca bu listeye eklenir; ana sayfa, kartlar, kayıt, sınav ve yönetici alanı otomatik kullanır.
 const DEFAULT_INSTITUTION = INSTITUTIONS[0];
 const DEFAULT_ROLE = DEFAULT_INSTITUTION.roles[0].name;
@@ -84,6 +119,8 @@ export default function App() {
   const [legalTopic, setLegalTopic] = useState<LegalTopic>('membership');
   const [legalModalTopic, setLegalModalTopic] = useState<LegalTopic | null>(null);
   const [infoRole, setInfoRole] = useState<Role>(DEFAULT_ROLE);
+  const [infoInstitutionId, setInfoInstitutionId] = useState<InstitutionId>('tcdd');
+  const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(null);
   const [expandedExamRole, setExpandedExamRole] = useState<Role | null>(null);
   const [plan, setPlan] = useState<Plan>('free');
   const [user, setUser] = useState<LocalUser | null>(null);
@@ -508,12 +545,73 @@ export default function App() {
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function openInstitutionInfo(institutionId: InstitutionId) {
+    setInfoInstitutionId(institutionId);
+    setExpandedFaqIndex(null);
+    setScreen('institution-info');
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   const Header = useMemo(() => <View style={{ backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: COLORS.line, paddingHorizontal: 38, paddingVertical: 22, flexDirection: 'row', alignItems: 'center', gap: 28 }}>
     <Pressable onPress={goHome} accessibilityRole="button" accessibilityLabel="Ana sayfayı yenile" style={{ flexDirection: 'row', alignItems: 'center', gap: 9, paddingRight: 28, borderRightWidth: 1, borderRightColor: '#D9E3E9' }}><Image source={TERFI_AMBLEM} style={{ width: 47, height: 47, resizeMode: 'contain' }} /><View><Text style={{ color: COLORS.navy, fontSize: 22, fontWeight: '900' }}>TERFİ <Text style={{ color: COLORS.red }}>ROTASI</Text></Text><Text style={{ color: COLORS.muted, fontSize: 9, marginTop: 2, letterSpacing: .3 }}>SINAV HAZIRLIK PLATFORMU</Text></View></Pressable>
     <View style={{ flexDirection: 'row', gap: 30, alignItems: 'center', flex: 1 }}>{[['home', 'Ana Sayfa'], ['exams', 'Sınavlar'], ['membership', 'Paketler']].map(([target, label]) => <Pressable key={target} onPress={() => setScreen(target as Screen)} style={{ paddingVertical: 8, borderBottomWidth: 2, borderBottomColor: screen === target ? COLORS.blue : 'transparent' }}><Text style={{ color: screen === target ? COLORS.blue : '#8293A1', fontSize: 16, fontWeight: screen === target ? '800' : '600' }}>{label}</Text></Pressable>)}</View>
     <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>{screen === 'quiz' && studyMode === 'mock' && <Text style={{ color: COLORS.red, fontWeight: '800' }}>{timerLabel}</Text>}<View style={{ borderWidth: 1, borderColor: '#A7CDDF', borderRadius: 24, width: 190, paddingLeft: 16, paddingRight: 11, flexDirection: 'row', alignItems: 'center' }}><TextInput value={examSearch} onChangeText={setExamSearch} onSubmitEditing={() => setScreen('exams')} placeholder="Sınav ara" placeholderTextColor="#758A99" style={{ flex: 1, color: COLORS.ink, fontSize: 13, paddingVertical: 10, outlineStyle: 'none' } as any} /><Pressable onPress={() => setScreen('exams')}><Text style={{ color: COLORS.navy, fontSize: 19 }}>⌕</Text></Pressable></View>{user ? <Pressable onPress={() => setScreen('auth')} style={{ backgroundColor: '#EAF5FA', borderRadius: 8, paddingHorizontal: 15, paddingVertical: 11 }}><Text style={{ color: COLORS.blue, fontSize: 13, fontWeight: '900' }}>Hesabım</Text></Pressable> : <><Pressable onPress={() => { setAuthMode('signup'); setAuthFeedback(null); setScreen('auth'); }} style={{ paddingHorizontal: 10, paddingVertical: 11 }}><Text style={{ color: COLORS.ink, fontSize: 14, fontWeight: '700' }}>Üye Ol</Text></Pressable><Pressable onPress={() => { setAuthMode('login'); setAuthFeedback(null); setScreen('auth'); }} style={{ backgroundColor: COLORS.blue, borderRadius: 8, paddingHorizontal: 18, paddingVertical: 12 }}><Text style={{ color: COLORS.white, fontSize: 14, fontWeight: '900' }}>Giriş Yap</Text></Pressable></>}</View>
   </View>, [screen, user, studyMode, timerLabel, examSearch]);
   const MobileHeader = useMemo(() => <View style={{ backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: COLORS.line, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12, gap: 11 }}><View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}><Pressable onPress={goHome} accessibilityRole="button" accessibilityLabel="Ana sayfayı yenile" style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}><Image source={TERFI_AMBLEM} style={{ width: 36, height: 36, resizeMode: 'contain' }} /><View><Text style={{ color: COLORS.navy, fontSize: 18, fontWeight: '900' }}>TERFİ <Text style={{ color: COLORS.red }}>ROTASI</Text></Text><Text style={{ color: COLORS.muted, fontSize: 9, fontWeight: '700' }}>SINAV HAZIRLIK PLATFORMU</Text></View></Pressable>{user ? <Pressable onPress={() => setScreen('auth')} style={{ backgroundColor: '#EAF5FA', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 }}><Text style={{ color: COLORS.blue, fontSize: 13, fontWeight: '900' }}>Hesabım</Text></Pressable> : <View style={{ flexDirection: 'row', gap: 7 }}><Pressable onPress={() => { setAuthMode('login'); setAuthFeedback(null); setScreen('auth'); }} style={{ borderWidth: 1, borderColor: COLORS.blue, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10 }}><Text style={{ color: COLORS.blue, fontSize: 12, fontWeight: '900' }}>Giriş</Text></Pressable><Pressable onPress={() => { setAuthMode('signup'); setAuthFeedback(null); setScreen('auth'); }} style={{ backgroundColor: COLORS.blue, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10 }}><Text style={{ color: COLORS.white, fontSize: 12, fontWeight: '900' }}>Üye Ol</Text></Pressable></View>}</View><View style={{ flexDirection: 'row', gap: 7, backgroundColor: '#F3F7FA', borderRadius: 10, padding: 4 }}><Pressable onPress={goHome} style={{ flex: 1, alignItems: 'center', borderRadius: 7, paddingVertical: 10, backgroundColor: screen === 'home' ? COLORS.white : 'transparent' }}><Text style={{ color: screen === 'home' ? COLORS.blue : COLORS.muted, fontSize: 13, fontWeight: '900' }}>Ana Sayfa</Text></Pressable><Pressable onPress={() => setScreen('exams')} style={{ flex: 1, alignItems: 'center', borderRadius: 7, paddingVertical: 10, backgroundColor: screen === 'exams' ? COLORS.white : 'transparent' }}><Text style={{ color: screen === 'exams' ? COLORS.blue : COLORS.muted, fontSize: 13, fontWeight: '900' }}>Sınavlar</Text></Pressable><Pressable onPress={() => setScreen('membership')} style={{ flex: 1, alignItems: 'center', borderRadius: 7, paddingVertical: 10, backgroundColor: screen === 'membership' ? COLORS.white : 'transparent' }}><Text style={{ color: screen === 'membership' ? COLORS.blue : COLORS.muted, fontSize: 13, fontWeight: '900' }}>Paketler</Text></Pressable></View>{screen === 'quiz' && studyMode === 'mock' && <Text style={{ color: COLORS.red, fontWeight: '900', textAlign: 'center' }}>{timerLabel}</Text>}</View>, [screen, user, studyMode, timerLabel]);
+
+  function InstitutionInfo() {
+    const institution = INSTITUTIONS.find(item => item.id === infoInstitutionId) ?? INSTITUTIONS[0];
+    const overview = INSTITUTION_OVERVIEWS[institution.id];
+    const goToInstitutionExams = () => {
+      setSelectedInstitutionId(institution.id);
+      setExpandedExamRole(null);
+      setScreen('exams');
+    };
+    return (
+      <ScrollView contentContainerStyle={[styles.page, { maxWidth: 1180, width: '100%', alignSelf: 'center', gap: compactHeader ? 16 : 24 }]}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7 }}>
+          <Pressable onPress={goHome}><Text style={{ color: COLORS.blue, fontWeight: '800' }}>Ana Sayfa</Text></Pressable>
+          <Text style={{ color: COLORS.muted }}>›</Text>
+          <Pressable onPress={() => setScreen('exams')}><Text style={{ color: COLORS.blue, fontWeight: '800' }}>Sınavlar</Text></Pressable>
+          <Text style={{ color: COLORS.muted }}>›</Text>
+          <Text style={{ color: COLORS.muted }}>{institution.name}</Text>
+        </View>
+        <View style={{ backgroundColor: COLORS.white, borderRadius: 16, borderWidth: 1, borderColor: COLORS.line, padding: compactHeader ? 18 : 28, gap: 16 }}>
+          <View style={{ flexDirection: compactHeader ? 'column' : 'row', gap: 20, alignItems: compactHeader ? 'flex-start' : 'center' }}>
+            <View style={{ flex: 1, gap: 9 }}>
+              <Text style={{ color: institution.id === 'icisleri' ? COLORS.red : COLORS.blue, fontWeight: '900', fontSize: 12, letterSpacing: .7 }}>SINAV BİLGİLENDİRME</Text>
+              <Text style={{ color: COLORS.ink, fontSize: compactHeader ? 27 : 35, lineHeight: compactHeader ? 35 : 43, fontWeight: '900' }}>{overview.title}</Text>
+              <Text style={{ color: COLORS.ink, lineHeight: 23, fontSize: 15 }}>{overview.intro}</Text>
+            </View>
+            <Image source={institution.logo ?? TCDD_LOGO} style={{ width: compactHeader ? 118 : 150, height: compactHeader ? 96 : 125, resizeMode: 'contain', alignSelf: compactHeader ? 'center' : 'auto' }} />
+          </View>
+        </View>
+        <View style={{ gap: 10 }}>
+          <Text style={[styles.heading, { fontSize: compactHeader ? 25 : 31 }]}>Önemli tarihler ve sınav bilgileri</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {overview.facts.map(fact => <View key={fact.label} style={{ flexGrow: 1, flexBasis: compactHeader ? '46%' : 180, backgroundColor: '#F1F8FC', borderWidth: 1, borderColor: '#C9E1EE', borderRadius: 11, padding: 14, gap: 5 }}><Text style={{ color: COLORS.muted, fontSize: 11, fontWeight: '900' }}>{fact.label}</Text><Text style={{ color: COLORS.navy, fontSize: 16, fontWeight: '900' }}>{fact.value}</Text></View>)}
+          </View>
+          {institution.id === 'icisleri' && <Text style={{ color: COLORS.muted, fontSize: 12, lineHeight: 18 }}>Takvim ve başvuru şartlarında değişiklik olabileceği için resmî kurum duyurularını esas al.</Text>}
+        </View>
+        {overview.sections.map(section => <View key={section.title} style={{ gap: 10, paddingTop: compactHeader ? 6 : 12 }}><Text style={[styles.heading, { fontSize: compactHeader ? 26 : 34 }]}>{section.title}</Text><View style={{ height: 1, backgroundColor: COLORS.line }} /><Text style={{ color: COLORS.ink, fontSize: 16, lineHeight: 26 }}>{section.text}</Text></View>)}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 11, marginTop: 2 }}>
+          <Pressable onPress={() => { if (user) goToInstitutionExams(); else { setAuthMode('signup'); setAuthFeedback(null); setScreen('auth'); } }} style={[styles.primaryButton, { paddingHorizontal: 24 }]}><Text style={styles.primaryText}>{user ? 'UNVANLARI İNCELE' : 'ÜCRETSİZ KAYIT OL'}</Text></Pressable>
+          <Pressable onPress={goToInstitutionExams} style={[styles.outlineButton, { paddingHorizontal: 22 }]}><Text style={styles.outlineText}>TÜM SINAVLARI GÖR</Text></Pressable>
+        </View>
+        <View style={{ gap: 11, paddingTop: compactHeader ? 8 : 16 }}>
+          <Text style={[styles.heading, { fontSize: compactHeader ? 26 : 34 }]}>Sıkça Sorulan Sorular</Text>
+          {overview.faqs.map((faq, faqIndex) => {
+            const isOpen = expandedFaqIndex === faqIndex;
+            return <View key={faq.question} style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: isOpen ? '#B9D8E8' : COLORS.line, borderRadius: 10, overflow: 'hidden' }}>
+              <Pressable onPress={() => setExpandedFaqIndex(current => current === faqIndex ? null : faqIndex)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 15 }}><Text style={{ flex: 1, color: COLORS.navy, fontSize: 15, fontWeight: '900' }}>{faq.question}</Text><Text style={{ color: COLORS.blue, fontSize: 20, fontWeight: '900' }}>{isOpen ? '−' : '+'}</Text></Pressable>
+              {isOpen && <View style={{ borderTopWidth: 1, borderTopColor: COLORS.line, paddingHorizontal: 16, paddingVertical: 14 }}><Text style={{ color: COLORS.ink, lineHeight: 22 }}>{faq.answer}</Text></View>}
+            </View>;
+          })}
+        </View>
+        <Footer />
+      </ScrollView>
+    );
+  }
 
   function Home() {
     const memberRole = (user?.role as Role) ?? DEFAULT_ROLE;
@@ -522,7 +620,7 @@ export default function App() {
     return <ScrollView contentContainerStyle={[styles.page, { gap: compactHeader ? 14 : 20 }]}>
       <View style={{ backgroundColor: '#D9F1F6', borderRadius: 18, padding: compactHeader ? 20 : 42, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: compactHeader ? 20 : 42, overflow: 'hidden' }}>
         <View style={{ flex: 1, minWidth: compactHeader ? 0 : 420, gap: compactHeader ? 10 : 15 }}><Text style={{ color: COLORS.red, fontSize: compactHeader ? 22 : 31, fontWeight: '900' }}>{homeInstitution.name}</Text><Text style={{ color: '#101A22', fontSize: compactHeader ? 27 : 40, fontWeight: '900', lineHeight: compactHeader ? 35 : 49 }}>Görevde Yükselme{`\n`}Sınav Hazırlığı</Text><Text style={{ color: COLORS.blue, fontSize: compactHeader ? 16 : 20, fontWeight: '800' }}>Kayıtlar başladı.</Text><View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><Pressable onPress={() => { setSelectedInstitutionId(homeInstitution.id); setScreen('exams'); }} style={{ alignSelf: 'flex-start', backgroundColor: COLORS.blue, paddingHorizontal: 25, paddingVertical: 14, borderRadius: 9 }}><Text style={{ color: COLORS.white, fontWeight: '900' }}>{user ? 'SINAVLARI GÖR' : 'ÜCRETSİZ BAŞLA'}</Text></Pressable>{INSTITUTIONS.length > 1 && <View style={{ flexDirection: 'row', gap: 7 }}><Pressable onPress={() => setHomeInstitutionPage(current => (current + INSTITUTIONS.length - 1) % INSTITUTIONS.length)} style={styles.outlineButton}><Text style={styles.outlineText}>‹</Text></Pressable><Pressable onPress={() => setHomeInstitutionPage(current => (current + 1) % INSTITUTIONS.length)} style={styles.outlineButton}><Text style={styles.outlineText}>›</Text></Pressable></View>}</View></View>
-        <View style={{ flex: 1, minWidth: compactHeader ? '100%' : 330, backgroundColor: COLORS.white, borderRadius: 16, minHeight: compactHeader ? 210 : 310, alignItems: 'center', justifyContent: 'center', padding: 22 }}><Image source={homeInstitution.logo ?? TCDD_LOGO} style={{ width: compactHeader ? 190 : 280, height: compactHeader ? 170 : 260, resizeMode: 'contain' }} /></View>
+        <Pressable onPress={() => openInstitutionInfo(homeInstitution.id)} accessibilityRole="button" accessibilityLabel={`${homeInstitution.name} sınav bilgileri`} style={{ flex: 1, minWidth: compactHeader ? '100%' : 330, backgroundColor: COLORS.white, borderRadius: 16, minHeight: compactHeader ? 210 : 310, alignItems: 'center', justifyContent: 'center', padding: 22, gap: 7 }}><Image source={homeInstitution.logo ?? TCDD_LOGO} style={{ width: compactHeader ? 190 : 280, height: compactHeader ? 170 : 260, resizeMode: 'contain' }} /><Text style={{ color: COLORS.blue, fontSize: 12, fontWeight: '900' }}>SINAV BİLGİLERİNİ İNCELE →</Text></Pressable>
       </View>
       {user && <View style={{ backgroundColor: '#F1F8FC', borderWidth: 1, borderColor: '#C9E1EE', borderRadius: 12, padding: 14, flexDirection: compactHeader ? 'column' : 'row', alignItems: compactHeader ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12 }}><View><Text style={{ color: COLORS.ink, fontWeight: '900' }}>Hoş geldin, {user.name.split(' ')[0]}.</Text><Text style={{ color: COLORS.muted, fontSize: 12, marginTop: 3 }}>{plan === 'premium' ? 'Sınırsız kullanım' : `${Math.max(0, 10 - freeTopicUsed)} soru ve ${freeMockUsed ? '0' : '1'} deneme hakkın kaldı.`}</Text></View><Pressable onPress={goToStart} style={styles.primaryButton}><Text style={styles.primaryText}>ÇALIŞMAYA BAŞLA</Text></Pressable></View>}
       <CurrentExamCardsV2 />
@@ -693,7 +791,7 @@ export default function App() {
     </Modal></>;
   }
   const modalLegal = legalModalTopic ? ({ membership: { title: 'Üyelik Sözleşmesi', body: 'Terfi Rotası; sınav konuları, soru çözümü, deneme ve analiz özellikleri sunar. Üyelik kişiye özeldir. Hesap bilgilerini ve şifreni korumak, hizmeti hukuka uygun kullanmak kullanıcının sorumluluğundadır. İçerikler yalnızca kişisel sınav hazırlığı için kullanılabilir; çoğaltılamaz veya ticari amaçla paylaşılamaz.' }, privacy: { title: 'Gizlilik Politikası', body: 'Ad soyad, e-posta, telefon, il, seçilen unvan, üyelik ve çalışma verileri; hesabın yönetilmesi, hizmetin sunulması ve güvenliğin korunması için işlenebilir. Kimlik doğrulama ve veri depolama hizmetleri Supabase, yayın hizmeti Vercel altyapısı üzerinden sağlanmaktadır.' }, kvkk: { title: 'KVKK Aydınlatma Metni', body: 'Kayıt bilgileri üyelik hesabının kurulması, hizmetin sunulması, güvenlik ve yasal yükümlülüklerin yerine getirilmesi için işlenir. Kişisel veriler, teknik hizmet sağlayıcılar ve yasal zorunluluklar dışında paylaşılmaz. Yayın öncesi veri sorumlusu ve başvuru iletişim kanalı bu metne eklenecektir.' }, cookies: { title: 'Çerez Politikası', body: 'Oturumun sürdürülmesi, güvenlik ve temel site işlevleri için gerekli teknik çerezler kullanılabilir. “Beni Hatırla” seçeneği kullanıldığında e-posta adresi cihazında hatırlanabilir. Tarayıcı ayarlarından çerezleri silebilir veya engelleyebilirsin.' } })[legalModalTopic] : null;
-  return <SafeAreaView style={styles.safe}><StatusBar style="light" />{compactHeader ? MobileHeader : Header}{screen === 'home' && Home()}{screen === 'exams' && ExamsAccordion()}{screen === 'role-info' && RoleInfo()}{screen === 'study' && StudySetup()}{screen === 'quiz' && Quiz()}{screen === 'result' && Result()}{screen === 'membership' && Membership()}{screen === 'progress' && Progress()}{screen === 'admin' && isAdmin && Admin()}{screen === 'auth' && Auth()}{screen === 'reset-password' && ResetPassword()}{screen === 'legal' && Legal()}<Modal visible={!!modalLegal} transparent animationType="fade" onRequestClose={() => setLegalModalTopic(null)}><View style={{ flex: 1, backgroundColor: '#102A3A99', padding: compactHeader ? 12 : 32, justifyContent: 'center' }}><View style={{ width: '100%', maxWidth: 820, maxHeight: '88%', alignSelf: 'center', backgroundColor: COLORS.white, borderRadius: 14, overflow: 'hidden' }}><View style={{ paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><Text style={{ flex: 1, color: COLORS.ink, fontSize: compactHeader ? 20 : 24, fontWeight: '900' }}>{modalLegal?.title}</Text><Pressable onPress={() => setLegalModalTopic(null)} style={{ width: 34, height: 34, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: COLORS.muted, fontSize: 26 }}>×</Text></Pressable></View><ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}><Text style={{ color: COLORS.ink, lineHeight: 23, fontSize: 14 }}>{modalLegal?.body}</Text><View style={{ backgroundColor: '#FFF7E4', borderLeftWidth: 4, borderLeftColor: COLORS.gold, borderRadius: 8, padding: 12 }}><Text style={{ color: COLORS.gold, fontSize: 12, fontWeight: '700', lineHeight: 18 }}>Bu metin, yayın öncesi işletme ve iletişim bilgileri eklenerek hukuk uzmanı tarafından gözden geçirilmelidir.</Text></View><Pressable style={styles.primaryButton} onPress={() => setLegalModalTopic(null)}><Text style={styles.primaryText}>OKUDUM, KAPAT</Text></Pressable></ScrollView></View></View></Modal></SafeAreaView>;
+  return <SafeAreaView style={styles.safe}><StatusBar style="light" />{compactHeader ? MobileHeader : Header}{screen === 'home' && Home()}{screen === 'exams' && ExamsAccordion()}{screen === 'institution-info' && InstitutionInfo()}{screen === 'role-info' && RoleInfo()}{screen === 'study' && StudySetup()}{screen === 'quiz' && Quiz()}{screen === 'result' && Result()}{screen === 'membership' && Membership()}{screen === 'progress' && Progress()}{screen === 'admin' && isAdmin && Admin()}{screen === 'auth' && Auth()}{screen === 'reset-password' && ResetPassword()}{screen === 'legal' && Legal()}<Modal visible={!!modalLegal} transparent animationType="fade" onRequestClose={() => setLegalModalTopic(null)}><View style={{ flex: 1, backgroundColor: '#102A3A99', padding: compactHeader ? 12 : 32, justifyContent: 'center' }}><View style={{ width: '100%', maxWidth: 820, maxHeight: '88%', alignSelf: 'center', backgroundColor: COLORS.white, borderRadius: 14, overflow: 'hidden' }}><View style={{ paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><Text style={{ flex: 1, color: COLORS.ink, fontSize: compactHeader ? 20 : 24, fontWeight: '900' }}>{modalLegal?.title}</Text><Pressable onPress={() => setLegalModalTopic(null)} style={{ width: 34, height: 34, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: COLORS.muted, fontSize: 26 }}>×</Text></Pressable></View><ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}><Text style={{ color: COLORS.ink, lineHeight: 23, fontSize: 14 }}>{modalLegal?.body}</Text><View style={{ backgroundColor: '#FFF7E4', borderLeftWidth: 4, borderLeftColor: COLORS.gold, borderRadius: 8, padding: 12 }}><Text style={{ color: COLORS.gold, fontSize: 12, fontWeight: '700', lineHeight: 18 }}>Bu metin, yayın öncesi işletme ve iletişim bilgileri eklenerek hukuk uzmanı tarafından gözden geçirilmelidir.</Text></View><Pressable style={styles.primaryButton} onPress={() => setLegalModalTopic(null)}><Text style={styles.primaryText}>OKUDUM, KAPAT</Text></Pressable></ScrollView></View></View></Modal></SafeAreaView>;
 }
 
 function Stat({ value, label }: { value: string; label: string }) { return <View style={styles.stat}><Text style={styles.statValue}>{value}</Text><Text style={styles.small}>{label}</Text></View>; }
