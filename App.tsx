@@ -9,7 +9,7 @@ import { loadCloudQuestionPool, loadQuestionPool, saveCloudImportedQuestions, sa
 import { loadMemberComments, publishMemberComment, type MemberComment } from './src/commentRepository';
 import { consumeMembershipQuota } from './src/membershipRepository';
 import { currentLocalUser, removeLocalUser, saveLocalUser, type LocalUser } from './src/localAuth';
-import { clearRemoteSession, createRemoteAccount, EmailVerificationRequiredError, loginRemoteAccount, remoteProfile, resendVerificationEmail, sendPasswordResetEmail, updateRemotePassword } from './src/supabaseAuth';
+import { clearRemoteSession, createRemoteAccount, EmailVerificationRequiredError, loginRemoteAccount, refreshRemoteSession, remoteProfile, resendVerificationEmail, sendPasswordResetEmail, updateRemotePassword } from './src/supabaseAuth';
 import { SEED_QUESTIONS_399 } from './src/seedQuestions';
 import { COMMON_QUESTION_CATALOG, COMMON_QUESTION_COUNT } from './src/questionCatalog';
 
@@ -123,6 +123,14 @@ export default function App() {
     const pool = syncThisDevice ? await syncLocalQuestionPool(session) : await loadCloudQuestionPool();
     applyQuestionPool(pool);
   }
+  async function keepSessionFresh(session: LocalUser): Promise<LocalUser> {
+    const refreshed = await refreshRemoteSession(session);
+    if (refreshed.accessToken !== session.accessToken) {
+      await saveLocalUser(refreshed);
+      setUser(refreshed);
+    }
+    return refreshed;
+  }
 
   useEffect(() => {
     // All devices read the shared question bank immediately, even before a member signs in.
@@ -137,10 +145,14 @@ export default function App() {
     AsyncStorage.getItem('terfi_wrongs_v1').then(value => { if (value) setWrongQuestions(JSON.parse(value) as WrongQuestion[]); });
     currentLocalUser().then(async saved => {
       if (!saved) return;
-      setUser(saved);
+      let activeUser = saved;
       if (saved.id && saved.accessToken) {
-        try { const profile = await remoteProfile(saved); setPlan(profile.plan); setFreeTopicUsed(profile.free_topic_used); setFreeMockUsed(profile.free_mock_used); } catch { /* Offline use keeps the last local session. */ }
-        try { await refreshSharedQuestionPool(saved, ADMIN_EMAILS.includes(saved.email.trim().toLowerCase())); } catch { /* The local pool stays available while the connection is unavailable. */ }
+        try { activeUser = await keepSessionFresh(saved); } catch { /* Older sessions without a refresh token stay usable until the next login. */ }
+      }
+      setUser(activeUser);
+      if (activeUser.id && activeUser.accessToken) {
+        try { const profile = await remoteProfile(activeUser); setPlan(profile.plan); setFreeTopicUsed(profile.free_topic_used); setFreeMockUsed(profile.free_mock_used); } catch { /* Offline use keeps the last local session. */ }
+        try { await refreshSharedQuestionPool(activeUser, ADMIN_EMAILS.includes(activeUser.email.trim().toLowerCase())); } catch { /* The local pool stays available while the connection is unavailable. */ }
       }
     });
   }, []);
@@ -270,11 +282,19 @@ export default function App() {
     }
     if (!pool.length) { Alert.alert('Henüz soru yok', 'Bu konu için soru havuzu oluşturulmamış. Yönetici panelinden HTML soru dosyası yükleyebilirsin.'); return; }
     if (!user?.accessToken) { setAuthMode('login'); setScreen('auth'); Alert.alert('Giriş gerekli', 'Sınava başlamak için üyelik hesabınla giriş yapmalısın.'); return; }
+    let activeUser: LocalUser;
+    try {
+      activeUser = await keepSessionFresh(user);
+    } catch (error) {
+      await signOut(); setAuthMode('login'); setScreen('auth');
+      Alert.alert('Oturum yenilenemedi', error instanceof Error ? error.message : 'Güvenliğin için lütfen tekrar giriş yap.');
+      return;
+    }
     const freeMockQuestions = Array.from(pool.reduce((selected, question) => selected.has(question.topic) ? selected : selected.set(question.topic, question), new Map<string, Question>()).values());
     let grant;
     try {
       const requestedCount = studyMode === 'mock' ? 50 : Math.min(questionCount, pool.length);
-      grant = await consumeMembershipQuota(user, studyMode === 'mock' ? 'mock' : 'topic', requestedCount);
+      grant = await consumeMembershipQuota(activeUser, studyMode === 'mock' ? 'mock' : 'topic', requestedCount);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Üyelik hakkın doğrulanamadı.';
       if (message.includes('hakkın kullanıldı')) setScreen('membership');
@@ -483,7 +503,8 @@ export default function App() {
       if (!user) { setAuthMode('signup'); setScreen('auth'); Alert.alert('Üyelik gerekli', 'Yorum yazmak için ücretsiz üyelik oluşturmalısın.'); return; }
       if (!commentText.trim()) { Alert.alert('Yorum gerekli', 'Yayınlamak için kısa bir yorum yazmalısın.'); return; }
       try {
-        const savedComment = await publishMemberComment(user, commentText);
+        const activeUser = await keepSessionFresh(user);
+        const savedComment = await publishMemberComment(activeUser, commentText);
         setComments(items => [savedComment, ...items]);
         setCommentText('');
         Alert.alert('Yorum yayınlandı', 'Yorumun kalıcı olarak kaydedildi ve herkesin görebileceği şekilde yayınlandı.');

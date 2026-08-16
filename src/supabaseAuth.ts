@@ -5,7 +5,7 @@ const SUPABASE_URL = 'https://hkfjjyltkfoiqujvelug.supabase.co';
 const PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZmpqeWx0a2ZvaXF1anZlbHVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NjQ2MDIsImV4cCI6MjEwMTQ0MDYwMn0.JI04LXbh5Lt4RACcFfEmB7FxsOe1Gr4xVXNBZ5f8En0';
 const SESSION_KEY = 'terfi_supabase_session_v1';
 
-type AuthPayload = { access_token?: string; user?: { id: string; email?: string; user_metadata?: Record<string, string>; identities?: unknown[] }; message?: string };
+type AuthPayload = { access_token?: string; refresh_token?: string; expires_in?: number; user?: { id: string; email?: string; user_metadata?: Record<string, string>; identities?: unknown[] }; message?: string };
 type ErrorPayload = { message?: string; msg?: string; error?: string; error_description?: string; code?: string };
 export type ProfilePayload = { plan: 'free' | 'premium'; free_topic_used: number; free_mock_used: boolean };
 
@@ -38,7 +38,7 @@ async function api<T>(path: string, options: RequestInit = {}, token?: string): 
 
 function toUser(payload: AuthPayload, fallback: Omit<LocalUser, 'id' | 'accessToken'>): LocalUser {
   if (!payload.user?.id || !payload.access_token) throw new Error('E-posta doğrulaması gerekiyor. E-postandaki bağlantıya tıklayıp ardından giriş yapmalısın.');
-  return { ...fallback, id: payload.user.id, accessToken: payload.access_token };
+  return { ...fallback, id: payload.user.id, accessToken: payload.access_token, refreshToken: payload.refresh_token, accessTokenExpiresAt: Date.now() + Math.max(60, payload.expires_in ?? 3300) * 1000 };
 }
 
 export async function createRemoteAccount(data: Omit<LocalUser, 'id' | 'accessToken'>, password: string): Promise<LocalUser> {
@@ -65,6 +65,16 @@ export async function loginRemoteAccount(email: string, password: string): Promi
   const meta = payload.user?.user_metadata ?? {};
   const user = toUser(payload, { name: meta.full_name ?? email.split('@')[0], email, city: meta.city, phone: meta.phone, role: meta.role });
   await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(user)); return user;
+}
+
+export async function refreshRemoteSession(user: LocalUser): Promise<LocalUser> {
+  // Refresh shortly before expiry instead of interrupting an active member mid-study.
+  if (user.accessToken && user.accessTokenExpiresAt && user.accessTokenExpiresAt > Date.now() + 90_000) return user;
+  if (!user.refreshToken) throw new Error('Oturum süresi doldu. Güvenliğin için lütfen tekrar giriş yap.');
+  const payload = await api<AuthPayload>('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: JSON.stringify({ refresh_token: user.refreshToken }) });
+  const refreshed = toUser(payload, user);
+  await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(refreshed));
+  return refreshed;
 }
 
 export async function remoteProfile(user: LocalUser): Promise<ProfilePayload> {

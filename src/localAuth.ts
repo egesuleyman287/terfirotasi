@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type LocalUser = { name: string; email: string; role?: string; city?: string; phone?: string; id?: string; accessToken?: string };
+export type LocalUser = { name: string; email: string; role?: string; city?: string; phone?: string; id?: string; accessToken?: string; refreshToken?: string; accessTokenExpiresAt?: number };
 
 const USER_KEY = 'terfi_current_user_v1';
 
