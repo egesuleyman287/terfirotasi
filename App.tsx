@@ -70,18 +70,21 @@ const INSTITUTIONS: Institution[] = [
 ];
 const INSTITUTION_OVERVIEWS: Record<InstitutionId, InstitutionOverview> = {
   tcdd: {
-    title: 'TCDD Taşımacılık A.Ş. Görevde Yükselme Hazırlığı',
-    intro: 'Bu sayfada TCDD Taşımacılık A.Ş. için eklenen unvanları, sorumlu olunan konu başlıklarını ve çalışma akışını inceleyebilirsin.',
-    facts: [{ label: 'KAPSAM', value: '9 unvan' }, { label: 'KONU BAŞLIKLARI', value: 'Unvana göre değişir' }, { label: 'ÇALIŞMA ŞEKLİ', value: 'Konu testi ve deneme' }, { label: 'SONUÇ', value: 'Konu bazlı analiz' }],
+    title: 'TCDD Taşımacılık A.Ş. Görevde Yükselme ve Unvan Değişikliği',
+    intro: 'TCDD Taşımacılık A.Ş. görevde yükselme sınavına ilişkin duyuru yayımlandı. Bu sayfada başvuru sürecini, unvan kapsamını ve hazırlık yolunu inceleyebilirsin.',
+    facts: [{ label: 'BAŞVURU SONU', value: '31 Temmuz 2026' }, { label: 'BAŞVURU KANALI', value: 'Kurumsal portal' }, { label: 'SİSTEM', value: 'Sınav Yönetim Sistemi' }, { label: 'KAPSAM', value: '9 unvan' }, { label: 'HAZIRLIK', value: 'Konu testi ve deneme' }],
     sections: [
-      { title: 'Sınav hazırlığı nasıl ilerler?', text: 'Unvanını seçtikten sonra sorumlu olduğun mevzuat başlıklarını görür, konu bazlı sorularla çalışır ve deneme sonunda analizini inceleyebilirsin.' },
-      { title: 'Unvana özel kapsam', text: 'Ortak konuların yanında her unvana ait özel konu başlıkları bulunur. Güncel kapsamı unvan kartını açarak görüntüleyebilirsin.' },
-      { title: 'Çalışmaya başla', text: 'Ücretsiz üyelikle soru çözmeye başlayabilir; ilerledikçe doğru ve yanlışlarını konu bazında takip edebilirsin.' },
+      { title: 'Sınav duyurusu yayımlandı', text: 'TCDD Taşımacılık A.Ş. tarafından görevde yükselme sürecine ilişkin resmî duyuru yayımlandı. Başvuruya açılan unvanlar ile sınav takvimi için kurum duyurusunu esas almalısın.' },
+      { title: 'Başvuru süreci', text: 'Başvuruların kurumsal portal üzerinden Sınav Yönetim Sistemi aracılığıyla yürütüleceği belirtilmektedir. Son başvuru tarihi, koşullar ve gerekli belgeler için resmî ilanı takip etmelisin.' },
+      { title: 'Başvuru öncesi kontrol', text: 'Başvuru yapmadan önce KKY sistemindeki öğrenim ve hizmet bilgilerini kontrol etmen önemlidir. Bilgilerinde eksiklik varsa kurumunun duyurduğu yöntemle güncelleme talep etmelisin.' },
+      { title: 'Nasıl hazırlanılır?', text: 'Unvanını seç, sorumlu olduğun ortak ve özel konu başlıklarını incele, soru çözerek eksiklerini gör. Deneme sonunda doğru-yanlışların ve konu bazlı analizin gösterilir.' },
     ],
     faqs: [
+      { question: 'TCDD Taşımacılık başvurusu ne zaman sona eriyor?', answer: 'Gönderdiğin duyuru bilgisine göre son başvuru tarihi 31 Temmuz 2026 olarak belirtilmiştir. Olası değişiklikler için kurumun resmî duyurusunu kontrol et.' },
+      { question: 'Başvurular nereden yapılır?', answer: 'Başvuruların kurumsal portalda bulunan Sınav Yönetim Sistemi üzerinden yürütüleceği bilgisi yer almaktadır.' },
+      { question: 'Başvuru öncesinde neyi kontrol etmeliyim?', answer: 'KKY sistemindeki öğrenim ve hizmet bilgilerini başvuru öncesinde kontrol etmelisin.' },
       { question: 'Hangi unvanlar için içerik var?', answer: 'Güncel unvanları Sınavlar bölümünden görebilir, her kartın altındaki konu listesini açabilirsin.' },
       { question: 'Konular nerede listelenir?', answer: 'Kurum ve unvan seçimi yapıldıktan sonra o unvana ait sorumlu konu başlıkları görünür.' },
-      { question: 'Deneme sonunda ne görürüm?', answer: 'Doğru-yanlış sayın ve konu bazlı sonuç analizin gösterilir.' },
     ],
   },
   icisleri: {
@@ -591,7 +594,7 @@ export default function App() {
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {overview.facts.map(fact => <View key={fact.label} style={{ flexGrow: 1, flexBasis: compactHeader ? '46%' : 180, backgroundColor: '#F1F8FC', borderWidth: 1, borderColor: '#C9E1EE', borderRadius: 11, padding: 14, gap: 5 }}><Text style={{ color: COLORS.muted, fontSize: 11, fontWeight: '900' }}>{fact.label}</Text><Text style={{ color: COLORS.navy, fontSize: 16, fontWeight: '900' }}>{fact.value}</Text></View>)}
           </View>
-          {institution.id === 'icisleri' && <Text style={{ color: COLORS.muted, fontSize: 12, lineHeight: 18 }}>Takvim ve başvuru şartlarında değişiklik olabileceği için resmî kurum duyurularını esas al.</Text>}
+          <Text style={{ color: COLORS.muted, fontSize: 12, lineHeight: 18 }}>Takvim ve başvuru şartlarında değişiklik olabileceği için resmî kurum duyurularını esas al.</Text>
         </View>
         {overview.sections.map(section => <View key={section.title} style={{ gap: 10, paddingTop: compactHeader ? 6 : 12 }}><Text style={[styles.heading, { fontSize: compactHeader ? 26 : 34 }]}>{section.title}</Text><View style={{ height: 1, backgroundColor: COLORS.line }} /><Text style={{ color: COLORS.ink, fontSize: 16, lineHeight: 26 }}>{section.text}</Text></View>)}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 11, marginTop: 2 }}>
