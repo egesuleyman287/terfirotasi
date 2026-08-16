@@ -254,10 +254,16 @@ export default function App() {
       setAuthPhone('');
       setAuthCity('');
       setAuthCityOpen(false);
+      setAuthInstitutionId('');
+      setAuthInstitutionOpen(false);
       setAuthRole(DEFAULT_ROLE);
+      setAuthRoleOpen(false);
+      setAuthRoleSelected(false);
       setAuthPassword('');
       setAuthPasswordConfirm('');
       setAuthAccepted(false);
+      setSecurityEntry('');
+      setSecurityCode(makeSecurityCode());
       setAuthFeedback(null);
       setEmailVerificationPending(false);
       setPendingVerificationEmail('');
@@ -269,6 +275,17 @@ export default function App() {
       });
     }
   }, [screen, authMode]);
+  useEffect(() => {
+    // Bölüm değiştiğinde önceki sayfanın geçici seçimlerini taşıma.
+    if (screen !== 'exams') {
+      setSelectedInstitutionId('');
+      setInstitutionOpen(false);
+      setExpandedExamRole(null);
+      setExamSearch('');
+    }
+    if (screen !== 'membership') setCommentText('');
+    if (screen !== 'admin') setAdminSearch('');
+  }, [screen]);
   const current = activeQuestions[index];
   const score = answers.filter((answer, i) => answer === activeQuestions[i].answer).length;
   const topics = useMemo(() => {
