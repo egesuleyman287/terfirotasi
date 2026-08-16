@@ -42,7 +42,7 @@ function toUser(payload: AuthPayload, fallback: Omit<LocalUser, 'id' | 'accessTo
 }
 
 export async function createRemoteAccount(data: Omit<LocalUser, 'id' | 'accessToken'>, password: string): Promise<LocalUser> {
-  const payload = await api<AuthPayload>('/auth/v1/signup', { method: 'POST', body: JSON.stringify({ email: data.email, password, data: { full_name: data.name, city: data.city, phone: data.phone, role: data.role } }) });
+  const payload = await api<AuthPayload>('/auth/v1/signup', { method: 'POST', body: JSON.stringify({ email: data.email, password, data: { full_name: data.name, institution: data.institution, city: data.city, phone: data.phone, role: data.role } }) });
   if (payload.user?.identities && payload.user.identities.length === 0) throw new Error('Bu e-posta adresiyle daha önce üyelik oluşturulmuş. Lütfen “Giriş Yap” seçeneğini kullan. Şifreni bilmiyorsan “Şifremi Unuttum” bağlantısına bas.');
   if (payload.user?.id && !payload.access_token) throw new EmailVerificationRequiredError();
   const user = toUser(payload, data); await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(user)); return user;
@@ -63,7 +63,7 @@ export async function updateRemotePassword(accessToken: string, password: string
 export async function loginRemoteAccount(email: string, password: string): Promise<LocalUser> {
   const payload = await api<AuthPayload>('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email, password }) });
   const meta = payload.user?.user_metadata ?? {};
-  const user = toUser(payload, { name: meta.full_name ?? email.split('@')[0], email, city: meta.city, phone: meta.phone, role: meta.role });
+  const user = toUser(payload, { name: meta.full_name ?? email.split('@')[0], email, institution: meta.institution, city: meta.city, phone: meta.phone, role: meta.role });
   await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(user)); return user;
 }
 
