@@ -462,11 +462,6 @@ export default function App() {
   function Home() {
     const memberRole = (user?.role as Role) ?? ROLES[0].name;
     const goToStart = () => user ? openStudy(memberRole) : (() => { setAuthMode('signup'); setAuthFeedback(null); setScreen('auth'); })();
-    const benefits = [
-      { number: '01', title: 'Unvanına özel plan', text: 'Sorumlu olduğun konuları tek bir yerde gör.', color: '#EAF5FA' },
-      { number: '02', title: 'Odaklı soru çözümü', text: 'Konunu seç, soruları çöz ve dayanağını incele.', color: '#FFF1F2' },
-      { number: '03', title: 'Gelişimini takip et', text: 'Deneme sonunda güçlü ve eksik konularını gör.', color: '#EEF7F1' },
-    ];
     return <ScrollView contentContainerStyle={[styles.page, { gap: compactHeader ? 14 : 20 }]}>
       <View style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: '#DCE7EE', borderRadius: 18, padding: compactHeader ? 19 : 32, flexDirection: 'row', flexWrap: 'wrap', gap: compactHeader ? 18 : 30, shadowColor: '#163A52', shadowOpacity: .08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 2 }}>
         <View style={{ flex: 1, minWidth: compactHeader ? 0 : 470, gap: compactHeader ? 11 : 14 }}>
@@ -477,8 +472,7 @@ export default function App() {
         </View>
         {!compactHeader && <View style={{ width: 270, borderLeftWidth: 1, borderLeftColor: '#DCE7EE', paddingLeft: 28, paddingVertical: 8, gap: 15, justifyContent: 'center' }}><Text style={{ color: COLORS.blue, fontWeight: '900', fontSize: 12, letterSpacing: .6 }}>NASIL ÇALIŞIR?</Text>{['Unvanını seç', 'Soruları çöz', 'Analizini gör'].map((step, index) => <View key={step} style={{ flexDirection: 'row', gap: 11, alignItems: 'center' }}><View style={{ width: 29, height: 29, borderRadius: 15, backgroundColor: index === 1 ? COLORS.red : COLORS.blue, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: COLORS.white, fontWeight: '900', fontSize: 12 }}>{index + 1}</Text></View><Text style={{ color: COLORS.ink, fontWeight: '800' }}>{step}</Text></View>)}</View>}
       </View>
-      <View style={{ flexDirection: 'row', gap: 10 }}><View style={styles.stat}><Text style={styles.statValue}>9</Text><Text style={styles.small}>Unvan</Text></View><View style={styles.stat}><Text style={styles.statValue}>11</Text><Text style={styles.small}>Sınav konusu</Text></View><View style={styles.stat}><Text style={styles.statValue}>{published}+</Text><Text style={styles.small}>Mevcut soru</Text></View></View>
-      <View style={{ gap: 10, marginTop: 2 }}><Text style={[styles.heading, { marginTop: 0 }]}>Hazırlığını tek yerde yönet</Text><Text style={styles.cardText}>Sınav hazırlığını küçük ve net adımlara ayır; nereden başlayacağını düşünme.</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>{benefits.map(item => <View key={item.number} style={{ flex: 1, minWidth: compactHeader ? '100%' : 220, backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.line, borderRadius: 12, padding: 15, gap: 7 }}><View style={{ width: 31, height: 31, borderRadius: 9, backgroundColor: item.color, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: COLORS.blue, fontWeight: '900', fontSize: 11 }}>{item.number}</Text></View><Text style={{ color: COLORS.ink, fontWeight: '900', fontSize: 15 }}>{item.title}</Text><Text style={{ color: COLORS.muted, lineHeight: 19, fontSize: 13 }}>{item.text}</Text></View>)}</View></View>
+      <View style={{ flexDirection: 'row', gap: 10 }}><View style={styles.stat}><Text style={styles.statValue}>9</Text><Text style={styles.small}>Açık unvan</Text></View><View style={styles.stat}><Text style={styles.statValue}>11</Text><Text style={styles.small}>Konu başlığı</Text></View><View style={styles.stat}><Text style={styles.statValue}>{published}+</Text><Text style={styles.small}>Mevcut soru</Text></View></View>
       <CurrentExamCards />
       <Footer />
     </ScrollView>;
