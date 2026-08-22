@@ -6,7 +6,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { importQuestionsFromHtml, type ImportedQuestion } from './src/htmlQuestionImporter';
 import { loadCloudQuestionPool, loadQuestionPool, saveCloudImportedQuestions, saveImportedQuestions, syncLocalQuestionPool, type StoredQuestion } from './src/questionRepository';
-import { loadMemberComments, publishMemberComment, type MemberComment } from './src/commentRepository';
+import { approveMemberComment, loadMemberComments, loadPendingMemberComments, publishMemberComment, type MemberComment } from './src/commentRepository';
 import { consumeMembershipQuota } from './src/membershipRepository';
 import { currentLocalUser, removeLocalUser, saveLocalUser, type LocalUser } from './src/localAuth';
 import { clearRemoteSession, createRemoteAccount, EmailVerificationRequiredError, loginRemoteAccount, refreshRemoteSession, remoteProfile, resendVerificationEmail, sendPasswordResetEmail, updateRemotePassword } from './src/supabaseAuth';
@@ -185,6 +185,7 @@ export default function App() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [wrongQuestions, setWrongQuestions] = useState<WrongQuestion[]>([]);
   const [comments, setComments] = useState<MemberComment[]>([]);
+  const [pendingComments, setPendingComments] = useState<MemberComment[]>([]);
   const [commentText, setCommentText] = useState('');
   const examCarouselRef = useRef<ScrollView>(null);
   const [examCarouselPage, setExamCarouselPage] = useState(0);
@@ -229,6 +230,11 @@ export default function App() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin || !user) { setPendingComments([]); return; }
+    loadPendingMemberComments(user).then(setPendingComments).catch(() => setPendingComments([]));
+  }, [isAdmin, user]);
   useEffect(() => {
     // Supabase returns from the e-mail link with a short-lived recovery token in the URL.
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -686,10 +692,9 @@ export default function App() {
       if (!commentText.trim()) { Alert.alert('Yorum gerekli', 'Yayınlamak için kısa bir yorum yazmalısın.'); return; }
       try {
         const activeUser = await keepSessionFresh(user);
-        const savedComment = await publishMemberComment(activeUser, commentText);
-        setComments(items => [savedComment, ...items]);
+        await publishMemberComment(activeUser, commentText);
         setCommentText('');
-        Alert.alert('Yorum yayınlandı', 'Yorumun kalıcı olarak kaydedildi ve herkesin görebileceği şekilde yayınlandı.');
+        Alert.alert('Yorumun alındı', 'Yorumun kaydedildi. Yönetici onayından sonra herkes tarafından görülebilecek.');
       } catch (error) {
         Alert.alert('Yorum kaydedilemedi', error instanceof Error ? error.message : 'Lütfen tekrar dene.');
       }
@@ -751,6 +756,19 @@ export default function App() {
       </View>
     </ScrollView>;
   }
+  const approvePendingComment = async (comment: MemberComment) => {
+    if (!user) return;
+    try {
+      const activeUser = await keepSessionFresh(user);
+      await approveMemberComment(activeUser, comment.id);
+      setPendingComments(items => items.filter(item => item.id !== comment.id));
+      setComments(items => [comment, ...items]);
+      Alert.alert('Yorum yayınlandı', 'Yorum artık üyelerin görebileceği şekilde yayınlandı.');
+    } catch (error) {
+      Alert.alert('Yorum onaylanamadı', error instanceof Error ? error.message : 'Lütfen tekrar dene.');
+    }
+  };
+
   function Admin() {
     const adminTopics = topicsForRole(adminRole);
     const adminQuestions = questionPoolFor(adminRole, adminTopic);
@@ -759,6 +777,12 @@ export default function App() {
     return <><ScrollView contentContainerStyle={[styles.page, { maxWidth: 1280, width: '100%', alignSelf: 'center' }]}>
       <View style={{ backgroundColor: COLORS.navy, borderRadius: 16, padding: compactHeader ? 18 : 25, gap: 16 }}><View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}><View style={{ flex: 1, minWidth: 230, gap: 5 }}><Text style={{ color: '#9FD9F6', fontWeight: '900', fontSize: 12, letterSpacing: .8 }}>YÖNETİCİ ÇALIŞMA ALANI</Text><Text style={{ color: COLORS.white, fontWeight: '900', fontSize: 27 }}>Soru bankası yönetimi</Text><Text style={{ color: '#DDEFFC', lineHeight: 20 }}>Soru havuzunu seç, dosyanı içe aktar ve yayınlamadan önce kontrol et.</Text></View><View style={{ backgroundColor: '#FFFFFF18', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}><Text style={{ color: '#DDEFFC', fontSize: 11 }}>TOPLAM SORU</Text><Text style={{ color: COLORS.white, fontSize: 24, fontWeight: '900' }}>{published}</Text></View></View><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}><View style={{ backgroundColor: '#FFFFFF12', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}><Text style={{ color: '#DDEFFC', fontSize: 11 }}>SEÇİLİ UNVAN</Text><Text style={{ color: COLORS.white, fontWeight: '800', fontSize: 13 }}>{adminRole}</Text></View><View style={{ backgroundColor: '#FFFFFF12', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}><Text style={{ color: '#DDEFFC', fontSize: 11 }}>SEÇİLİ KONU</Text><Text style={{ color: COLORS.white, fontWeight: '800', fontSize: 13 }}>{adminQuestions.length} soru</Text></View></View></View>
       <View style={[styles.card, { backgroundColor: '#F7FBFE', borderColor: '#B9D8E8' }]}><View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}><View style={{ flex: 1, minWidth: 200 }}><Text style={{ color: COLORS.blue, fontWeight: '900' }}>Merkezi soru havuzu</Text><Text style={styles.cardText}>Bilgisayardaki eski soruları Supabase’e aktarır; telefon ve bilgisayar aynı havuzu görür.</Text></View><Pressable style={styles.primaryButton} onPress={syncQuestionBankNow}><Text style={styles.primaryText}>MERKEZİ HAVUZA EŞİTLE</Text></Pressable></View></View>
+      <View style={[styles.card, { gap: 12, backgroundColor: '#FFFDF8', borderColor: '#F0D69C' }]}>
+        <Text style={styles.setupLabel}>YORUM ONAYI</Text>
+        <Text style={styles.cardTitle}>Bekleyen yorumlar ({pendingComments.length})</Text>
+        <Text style={styles.cardText}>Yalnızca onayladığın yorumlar üyelerin karşısında yayınlanır.</Text>
+        {pendingComments.length ? pendingComments.map(comment => <View key={comment.id} style={{ borderTopWidth: 1, borderTopColor: COLORS.line, paddingTop: 12, gap: 7 }}><Text style={{ color: COLORS.ink, fontWeight: '800' }}>{comment.author} <Text style={{ color: COLORS.muted, fontWeight: '500', fontSize: 12 }}>· {comment.date}</Text></Text><Text style={styles.cardText}>{comment.text}</Text><Pressable style={[styles.primaryButton, { alignSelf: 'flex-start' }]} onPress={() => approvePendingComment(comment)}><Text style={styles.primaryText}>YAYINLA</Text></Pressable></View>) : <Text style={styles.cardText}>Onay bekleyen yorum yok.</Text>}
+      </View>
       <View style={styles.card}>
         <Text style={styles.setupLabel}>ADIM 1 · HEDEF HAVUZ</Text><Text style={styles.cardTitle}>Unvanı ve konuyu belirle</Text><Text style={styles.cardText}>Yükleyeceğin sorular yalnızca burada seçtiğin unvan ve konuya eklenir.</Text>
         <Text style={styles.inputLabel}>Unvan</Text>

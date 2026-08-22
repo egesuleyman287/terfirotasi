@@ -27,7 +27,18 @@ export async function publishMemberComment(user: LocalUser, text: string): Promi
   const body = text.trim();
   if (body.length < 2) throw new Error('Yorumun en az 2 karakter olmalı.');
   if (body.length > 1000) throw new Error('Yorum en fazla 1000 karakter olabilir.');
-  const rows = await request<CloudComment[]>('/rest/v1/member_comments', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ user_id: user.id, author: user.name.trim() || user.email.split('@')[0], body }) }, user.accessToken);
+  const rows = await request<CloudComment[]>('/rest/v1/member_comments', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ user_id: user.id, author: user.name.trim() || user.email.split('@')[0], body, is_visible: false }) }, user.accessToken);
   if (!rows[0]) throw new Error('Yorum kaydedildi ancak yanıt alınamadı. Sayfayı yenileyip kontrol et.');
   return mapComment(rows[0]);
+}
+
+export async function loadPendingMemberComments(user: LocalUser): Promise<MemberComment[]> {
+  if (!user.accessToken) throw new Error('Bekleyen yorumları görmek için tekrar giriş yapmalısın.');
+  const rows = await request<CloudComment[]>('/rest/v1/member_comments?select=id,author,body,created_at&is_visible=eq.false&order=created_at.asc&limit=100', {}, user.accessToken);
+  return rows.map(mapComment);
+}
+
+export async function approveMemberComment(user: LocalUser, commentId: string): Promise<void> {
+  if (!user.accessToken) throw new Error('Yorum onaylamak için tekrar giriş yapmalısın.');
+  await request(`/rest/v1/member_comments?id=eq.${encodeURIComponent(commentId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ is_visible: true }) }, user.accessToken);
 }
